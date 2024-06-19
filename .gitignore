@@ -1,0 +1,15 @@
+# Ignore built files and directories
+target/
+/**/*.rs.bk
+
+# Ignore IDE and editor configuration files
+.vscode/
+.idea/
+*.iml
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Cargo files
+Cargo.lock
