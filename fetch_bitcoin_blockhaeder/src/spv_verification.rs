@@ -74,7 +74,7 @@ pub fn perform_spv_verification(conn: &Connection) {
     while let Some(row) = rows.next().expect("Failed to fetch row") {
         let height: u64 = row.get(0).expect("Failed to get height");
         let local_header = get_block_header_by_height(conn, height).expect("Failed to get block header");
-        let remote_header = get_block_header_from_node(&client, height);
+        let remote_header: BitcoinBlockHeader = get_block_header_from_node(&client, height);
 
         //   println!("remote_header {:?}", remote_header);
         // Compare local and remote block headers

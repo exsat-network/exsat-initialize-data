@@ -3,6 +3,7 @@ use serde::Deserialize;
 use rusqlite::{params, Connection, Result};
 use std::thread;
 use std::time::{Duration, Instant};
+use crate::utils::get_env_var;
 
 #[derive(Deserialize)]
 struct GetBlockHashResponse {
@@ -36,9 +37,7 @@ pub struct BlockHeader {
     pub difficulty: f64,
 }
 
-const SOURCE_URL: &str = "http://regtest.exactsat.io:18443/";
-const SOURCE_USERNAME: &str = "test";
-const SOURCE_PASSWORD: &str = "test";
+
 
 pub fn create_db_connection(db_path: &str) -> Result<Connection> {
     let conn = Connection::open(db_path)?;
@@ -61,10 +60,11 @@ pub fn create_db_connection(db_path: &str) -> Result<Connection> {
 }
 
 pub fn get_block_hash(client: &Client, block_height: u32) -> String {
+   
     for _ in 0..5 {
         match client
-            .post(SOURCE_URL)
-            .basic_auth(SOURCE_USERNAME, Some(SOURCE_PASSWORD))
+            .post(get_env_var("SOURCE_URL"))
+            .basic_auth(get_env_var("SOURCE_USERNAME"), Some(get_env_var("SOURCE_PASSWORD")))
             .header("Content-Type", "application/json")
             .body(serde_json::json!({
                 "jsonrpc": "1.0",
@@ -89,10 +89,11 @@ pub fn get_block_hash(client: &Client, block_height: u32) -> String {
 }
 
 pub fn get_block_header(client: &Client, block_hash: &str) -> BlockHeader {
+ 
     for _ in 0..5 {
         match client
-            .post(SOURCE_URL)
-            .basic_auth(SOURCE_USERNAME, Some(SOURCE_PASSWORD))
+            .post(get_env_var("SOURCE_URL"))
+            .basic_auth(get_env_var("SOURCE_USERNAME"), Some(get_env_var("SOURCE_PASSWORD")))
             .header("Content-Type", "application/json")
             .body(serde_json::json!({
                 "jsonrpc": "1.0",

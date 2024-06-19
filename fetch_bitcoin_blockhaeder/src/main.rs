@@ -1,9 +1,11 @@
 mod block_header;
 mod spv_verification;
+mod utils;
 
 use block_header::{index_block_headers, create_db_connection};
 use spv_verification::perform_spv_verification;
 use std::io;
+
 
 const MAX_BLOCK_HEIGHT: u32 = 840000;
 
