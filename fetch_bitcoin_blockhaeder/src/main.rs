@@ -1,16 +1,18 @@
 mod block_header;
 mod spv_verification;
 mod utils;
+mod types;
 
-use block_header::{index_block_headers, create_db_connection};
+use block_header::index_block_headers;
 use spv_verification::perform_spv_verification;
+use utils::create_db_connection;
 use std::io;
 
 
 const MAX_BLOCK_HEIGHT: u32 = 840000;
 
 fn main() {
-    let conn = create_db_connection("block_headers.db").expect("Failed to create DB connection");
+    let conn: rusqlite::Connection = create_db_connection("block_headers.db").expect("Failed to create DB connection");
 
     println!("Select an option:");
     println!("1. Index block headers");

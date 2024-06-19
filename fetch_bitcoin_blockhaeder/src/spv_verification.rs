@@ -1,8 +1,9 @@
 use rusqlite::{Connection, Result as RusqliteResult};
 use bitcoin::blockdata::block::BlockHeader as BitcoinBlockHeader;
-use crate::block_header::BlockHeader;
+use crate::types::BlockHeader;
 use std::time::Instant;
 use bitcoincore_rpc::{Auth, Client, RpcApi};
+use crate::utils::{get_last_indexed_height, get_block_hash, get_block_header, save_block_header};
 
 // Define RPC connection details
 const RPC_URL: &str = "http://regtest.exactsat.io:18443/";
