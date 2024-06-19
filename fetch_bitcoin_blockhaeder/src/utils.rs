@@ -31,12 +31,12 @@ pub fn create_db_connection(db_path: &str) -> Result<Connection> {
     Ok(conn)
 }
 
-pub fn get_block_hash(client: &Client, block_height: u32) -> String {
+pub fn get_block_hash(client: &Client, block_height: u32, url: String, username: String, password: String) -> String {
    
     for _ in 0..5 {
         match client
-            .post(get_env_var("SOURCE_URL"))
-            .basic_auth(get_env_var("SOURCE_USERNAME"), Some(get_env_var("SOURCE_PASSWORD")))
+            .post(url.clone())
+            .basic_auth(username.clone(), Some(password.clone()))
             .header("Content-Type", "application/json")
             .body(serde_json::json!({
                 "jsonrpc": "1.0",
@@ -60,12 +60,12 @@ pub fn get_block_hash(client: &Client, block_height: u32) -> String {
     panic!("Failed to fetch block hash after 5 attempts");
 }
 
-pub fn get_block_header(client: &Client, block_hash: &str) -> BlockHeader {
+pub fn get_block_header(client: &Client, block_hash: &str, url: String, username: String, password: String) -> BlockHeader {
  
     for _ in 0..5 {
         match client
-            .post(get_env_var("SOURCE_URL"))
-            .basic_auth(get_env_var("SOURCE_USERNAME"), Some(get_env_var("SOURCE_PASSWORD")))
+             .post(url.clone())
+            .basic_auth(username.clone(), Some(password.clone()))
             .header("Content-Type", "application/json")
             .body(serde_json::json!({
                 "jsonrpc": "1.0",

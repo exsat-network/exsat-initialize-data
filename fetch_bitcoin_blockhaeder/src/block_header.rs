@@ -2,7 +2,7 @@ use reqwest::blocking::Client;
 use rusqlite::{Connection, Result};
 use std::thread;
 use std::time::{Duration, Instant};
-use crate::utils::{get_last_indexed_height, get_block_hash, get_block_header, save_block_header};
+use crate::utils::{get_last_indexed_height, get_block_hash, get_block_header, save_block_header, get_env_var};
 
 
 
@@ -10,15 +10,15 @@ pub fn index_block_headers(conn: &Connection, max_block_height: u32) -> Result<(
     let client = Client::new();
     let mut current_height = get_last_indexed_height(conn)?;
     let mut current_block_hash = if current_height > 0 {
-        get_block_hash(&client, current_height)
+        get_block_hash(&client, current_height, get_env_var("SOURCE_URL"), get_env_var("SOURCE_USERNAME"), get_env_var("SOURCE_PASSWORD"))
     } else {
-        get_block_hash(&client, 0)  // Start from the genesis block
+        get_block_hash(&client, 0, get_env_var("SOURCE_URL"), get_env_var("SOURCE_USERNAME"), get_env_var("SOURCE_PASSWORD"))  // Start from the genesis block
     };
 
     let start_time = Instant::now();
 
     while current_height <= max_block_height {
-        let block_header = get_block_header(&client, &current_block_hash);
+        let block_header = get_block_header(&client, &current_block_hash, get_env_var("SOURCE_URL"), get_env_var("SOURCE_USERNAME"), get_env_var("SOURCE_PASSWORD"));
         save_block_header(conn, &block_header)?;
 
         if let Some(nextblockhash) = block_header.nextblockhash.clone() {

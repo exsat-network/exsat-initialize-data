@@ -3,7 +3,7 @@ use bitcoin::blockdata::block::BlockHeader as BitcoinBlockHeader;
 use crate::types::BlockHeader;
 use std::time::Instant;
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use crate::utils::{get_last_indexed_height, get_block_hash, get_block_header, save_block_header};
+// use crate::utils::{get_last_indexed_height, get_block_hash, get_block_header, save_block_header};
 
 // Define RPC connection details
 const RPC_URL: &str = "http://regtest.exactsat.io:18443/";
