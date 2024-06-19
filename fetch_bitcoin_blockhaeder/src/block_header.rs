@@ -26,6 +26,7 @@ struct GetBlockHeaderResponse {
 pub struct BlockHeader {
     pub hash: String,
     pub height: u32,
+    pub version: i32,
     pub previousblockhash: Option<String>,
     pub nextblockhash: Option<String>,
     pub merkleroot: String,
@@ -45,6 +46,7 @@ pub fn create_db_connection(db_path: &str) -> Result<Connection> {
         "CREATE TABLE IF NOT EXISTS block_headers (
             hash TEXT PRIMARY KEY,
             height INTEGER,
+            version INTEGER,
             previousblockhash TEXT,
             nextblockhash TEXT,
             merkleroot TEXT,
@@ -116,10 +118,11 @@ pub fn get_block_header(client: &Client, block_hash: &str) -> BlockHeader {
 
 fn save_block_header(conn: &Connection, block_header: &BlockHeader) -> Result<()> {
     conn.execute(
-        "INSERT OR IGNORE INTO block_headers (hash, height, previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT OR IGNORE INTO block_headers (hash, height, version, previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             block_header.hash,
             block_header.height,
+            block_header.version,
             block_header.previousblockhash,
             block_header.nextblockhash,
             block_header.merkleroot,

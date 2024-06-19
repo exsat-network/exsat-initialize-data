@@ -26,18 +26,19 @@ fn get_block_header_from_node(client: &Client, block_height: u64) -> BitcoinBloc
 
 // Function to get block header information from the local database
 pub fn get_block_header_by_height(conn: &Connection, height: u64) -> RusqliteResult<BlockHeader> {
-    let mut stmt = conn.prepare("SELECT hash, height, previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty FROM block_headers WHERE height = ?1")?;
+    let mut stmt = conn.prepare("SELECT hash, height, version,  previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty FROM block_headers WHERE height = ?1")?;
     let block_header_iter = stmt.query_map([height], |row| {
         Ok(BlockHeader {
             hash: row.get(0)?,
             height: row.get(1)?,
-            previousblockhash: row.get(2)?,
-            nextblockhash: row.get(3)?,
-            merkleroot: row.get(4)?,
-            time: row.get(5)?,
-            bits: row.get(6)?,
-            nonce: row.get(7)?,
-            difficulty: row.get(8)?,
+            version: row.get(2)?,
+            previousblockhash: row.get(3)?,
+            nextblockhash: row.get(4)?,
+            merkleroot: row.get(5)?,
+            time: row.get(6)?,
+            bits: row.get(7)?,
+            nonce: row.get(8)?,
+            difficulty: row.get(9)?,
         })
     })?;
 
@@ -75,6 +76,7 @@ pub fn perform_spv_verification(conn: &Connection) {
         let local_header = get_block_header_by_height(conn, height).expect("Failed to get block header");
         let remote_header = get_block_header_from_node(&client, height);
 
+        //   println!("remote_header {:?}", remote_header);
         // Compare local and remote block headers
         if let Some(difference) = compare_block_headers(&local_header, &remote_header) {
             println!("Mismatch found at block height {}: {}", height, difference);
@@ -114,6 +116,9 @@ fn compare_block_headers(local: &BlockHeader, remote: &BitcoinBlockHeader) -> Op
     }
     if local.nonce != remote.nonce {
         return Some(format!("Nonce differs: local={}, remote={}", local.nonce, remote.nonce));
+    }
+    if local.version != remote.version {
+        return Some(format!("version differs: local={}, remote={}", local.nonce, remote.nonce));
     }
     None
 }
