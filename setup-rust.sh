@@ -4,7 +4,7 @@
 install_rust() {
     echo "Updating package list and installing prerequisites..."
     sudo apt update
-    sudo apt install -y curl build-essential clang llvm libclang-dev  cmake
+    sudo apt install -y curl build-essential clang llvm libclang-dev  cmake  pkg-config libssl-dev libsqlite3-dev
 
     echo "Installing Rust using rustup..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
