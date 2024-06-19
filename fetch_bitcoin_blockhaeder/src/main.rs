@@ -33,11 +33,15 @@ struct BlockHeader {
     nextblockhash: Option<String>,
 }
 
-fn get_block_hash(client: &Client, url: &str, block_height: u32) -> String {
+const URL: &str = "http://regtest.exactsat.io:18443/";
+const USERNAME: &str = "test";
+const PASSWORD: &str = "test";
+
+fn get_block_hash(client: &Client, block_height: u32) -> String {
     for _ in 0..5 {
         match client
-            .post(url)
-            .basic_auth("test", Some("test"))
+            .post(URL)
+            .basic_auth(USERNAME, Some(PASSWORD))
             .header("Content-Type", "application/json")
             .body(serde_json::json!({
                 "jsonrpc": "1.0",
@@ -61,11 +65,11 @@ fn get_block_hash(client: &Client, url: &str, block_height: u32) -> String {
     panic!("Failed to fetch block hash after 5 attempts");
 }
 
-fn get_block_header(client: &Client, url: &str, block_hash: &str) -> BlockHeader {
+fn get_block_header(client: &Client, block_hash: &str) -> BlockHeader {
     for _ in 0..5 {
         match client
-            .post(url)
-            .basic_auth("test", Some("test"))
+            .post(URL)
+            .basic_auth(USERNAME, Some(PASSWORD))
             .header("Content-Type", "application/json")
             .body(serde_json::json!({
                 "jsonrpc": "1.0",
@@ -108,12 +112,11 @@ fn format_duration(duration: Duration) -> String {
 
 fn main() {
     let client = Client::new();
-    let url = "http://regtest.exactsat.io:18443/";
     let output_file = "block_headers.csv";
 
     let mut wtr = Writer::from_writer(OpenOptions::new().append(true).create(true).open(output_file).expect("Unable to create file"));
 
-    let (last_height, last_hash) = read_last_block_height(output_file).unwrap_or((0, get_block_hash(&client, url, 0)));
+    let (last_height, last_hash) = read_last_block_height(output_file).unwrap_or((0, get_block_hash(&client, 0)));
     let mut current_height = last_height;
     let mut current_block_hash = last_hash.clone();
 
@@ -122,7 +125,7 @@ fn main() {
     } else {
         // Move to the next block height and hash to avoid duplicating the last record
         current_height += 1;
-        current_block_hash = get_block_hash(&client, url, current_height);
+        current_block_hash = get_block_hash(&client, current_height);
     }
 
     let mut batch_count = 0;
@@ -130,7 +133,7 @@ fn main() {
     let total_blocks = 840000 - current_height;
 
     while current_height < 840000 {
-        let block_header = get_block_header(&client, url, &current_block_hash);
+        let block_header = get_block_header(&client, &current_block_hash);
         
         wtr.write_record(&[
             block_header.height.to_string(),
