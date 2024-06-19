@@ -13,3 +13,5 @@ Thumbs.db
 
 # Ignore Cargo files
 Cargo.lock
+*.db
+.env
