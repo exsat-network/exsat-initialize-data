@@ -26,7 +26,7 @@ fn get_block_header_from_node(client: &Client, block_height: u64) -> BitcoinBloc
 
 // Function to get block header information from the local database
 pub fn get_block_header_by_height(conn: &Connection, height: u64) -> RusqliteResult<BlockHeader> {
-    let mut stmt = conn.prepare("SELECT hash, height, previousblockhash, nextblockhash, merkleroot, time, bits, nonce FROM block_headers WHERE height = ?1")?;
+    let mut stmt = conn.prepare("SELECT hash, height, previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty FROM block_headers WHERE height = ?1")?;
     let block_header_iter = stmt.query_map([height], |row| {
         Ok(BlockHeader {
             hash: row.get(0)?,
@@ -37,6 +37,7 @@ pub fn get_block_header_by_height(conn: &Connection, height: u64) -> RusqliteRes
             time: row.get(5)?,
             bits: row.get(6)?,
             nonce: row.get(7)?,
+            difficulty: row.get(8)?,
         })
     })?;
 

@@ -32,6 +32,7 @@ pub struct BlockHeader {
     pub time: u64,
     pub bits: String,
     pub nonce: u32,
+    pub difficulty: f64,
 }
 
 const SOURCE_URL: &str = "http://regtest.exactsat.io:18443/";
@@ -49,7 +50,8 @@ pub fn create_db_connection(db_path: &str) -> Result<Connection> {
             merkleroot TEXT,
             time INTEGER,
             bits TEXT,
-            nonce INTEGER
+            nonce INTEGER,
+            difficulty REAL
         )",
         [],
     )?;
@@ -114,7 +116,7 @@ pub fn get_block_header(client: &Client, block_hash: &str) -> BlockHeader {
 
 fn save_block_header(conn: &Connection, block_header: &BlockHeader) -> Result<()> {
     conn.execute(
-        "INSERT OR IGNORE INTO block_headers (hash, height, previousblockhash, nextblockhash, merkleroot, time, bits, nonce) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        "INSERT OR IGNORE INTO block_headers (hash, height, previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         params![
             block_header.hash,
             block_header.height,
@@ -123,7 +125,8 @@ fn save_block_header(conn: &Connection, block_header: &BlockHeader) -> Result<()
             block_header.merkleroot,
             block_header.time,
             block_header.bits,
-            block_header.nonce
+            block_header.nonce,
+            block_header.difficulty
         ],
     )?;
     Ok(())
