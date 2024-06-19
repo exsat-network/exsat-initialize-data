@@ -6,7 +6,7 @@ use crate::utils::{get_last_indexed_height, get_block_hash, get_block_header, sa
 
 
 
-pub fn index_block_headers(conn: &Connection, max_block_height: u32) -> Result<()> {
+pub fn index_block_headers(conn: &Connection, max_block_height: u64) -> Result<()> {
     let client = Client::new();
     let mut current_height = get_last_indexed_height(conn)?;
     let mut current_block_hash = if current_height > 0 {
@@ -39,7 +39,7 @@ pub fn index_block_headers(conn: &Connection, max_block_height: u32) -> Result<(
     Ok(())
 }
 
-fn calculate_eta(elapsed_time: Duration, current_height: u32, max_block_height: u32) -> String {
+fn calculate_eta(elapsed_time: Duration, current_height: u64, max_block_height: u64) -> String {
     let total_blocks = max_block_height - current_height;
     let avg_time_per_block = elapsed_time / current_height as u32;
     let eta = avg_time_per_block * total_blocks as u32;

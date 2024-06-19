@@ -31,7 +31,7 @@ pub fn create_db_connection(db_path: &str) -> Result<Connection> {
     Ok(conn)
 }
 
-pub fn get_block_hash(client: &Client, block_height: u32, url: String, username: String, password: String) -> String {
+pub fn get_block_hash(client: &Client, block_height: u64, url: String, username: String, password: String) -> String {
    
     for _ in 0..5 {
         match client
@@ -108,8 +108,8 @@ pub fn save_block_header(conn: &Connection, block_header: &BlockHeader) -> Resul
     Ok(())
 }
 
-pub fn get_last_indexed_height(conn: &Connection) -> Result<u32> {
+pub fn get_last_indexed_height(conn: &Connection) -> Result<u64> {
     let mut stmt = conn.prepare("SELECT MAX(height) FROM block_headers")?;
-    let height: u32 = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
+    let height: u64 = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
     Ok(height)
 }

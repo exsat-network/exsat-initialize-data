@@ -1,28 +1,17 @@
 use rusqlite::{Connection, Result as RusqliteResult};
-use bitcoin::blockdata::block::BlockHeader as BitcoinBlockHeader;
-use crate::types::BlockHeader;
+use crate::{types::BlockHeader, utils::get_env_var};
 use std::time::Instant;
-use bitcoincore_rpc::{Auth, Client, RpcApi};
-// use crate::utils::{get_last_indexed_height, get_block_hash, get_block_header, save_block_header};
+use reqwest::blocking::Client;
+use crate::utils::{ get_block_hash, get_block_header};
 
-// Define RPC connection details
-const RPC_URL: &str = "http://regtest.exactsat.io:18443/";
-const RPC_USER: &str = "test";
-const RPC_PASSWORD: &str = "test";
 
 // Function to get block header information from the local Bitcoin node
-fn get_block_header_from_node(client: &Client, block_height: u64) -> BitcoinBlockHeader {
-    let block_hash = client.get_block_hash(block_height).expect("Failed to get block hash");
-    let block_header = client.get_block_header(&block_hash).expect("Failed to get block header");
+fn get_block_header_from_node(client: &Client, block_height: u64) -> BlockHeader {
+    
+    let block_hash = get_block_hash(&client, block_height, get_env_var("VERIFY_URL"), get_env_var("VERIFY_USERNAME"), get_env_var("VERIFY_PASSWORD"));
+    let block_header = get_block_header(&client, &block_hash, get_env_var("VERIFY_URL"), get_env_var("VERIFY_USERNAME"), get_env_var("VERIFY_PASSWORD"));
 
-    BitcoinBlockHeader {
-        version: block_header.version,
-        prev_blockhash: block_header.prev_blockhash,
-        merkle_root: block_header.merkle_root,
-        time: block_header.time,
-        bits: block_header.bits,
-        nonce: block_header.nonce,
-    }
+    block_header
 }
 
 // Function to get block header information from the local database
@@ -52,7 +41,7 @@ pub fn get_block_header_by_height(conn: &Connection, height: u64) -> RusqliteRes
 // Function to perform SPV verification
 pub fn perform_spv_verification(conn: &Connection) {
     // Configure connection to the local Bitcoin RPC node
-    let client = Client::new(RPC_URL, Auth::UserPass(RPC_USER.to_string(), RPC_PASSWORD.to_string())).expect("Failed to create RPC client");
+    let client = Client::new();
 
     // Prepare and execute SQL statement to get block heights from the local database
     let mut stmt = conn.prepare("SELECT height FROM block_headers ORDER BY height").expect("Failed to prepare statement");
@@ -75,7 +64,7 @@ pub fn perform_spv_verification(conn: &Connection) {
     while let Some(row) = rows.next().expect("Failed to fetch row") {
         let height: u64 = row.get(0).expect("Failed to get height");
         let local_header = get_block_header_by_height(conn, height).expect("Failed to get block header");
-        let remote_header: BitcoinBlockHeader = get_block_header_from_node(&client, height);
+        let remote_header: BlockHeader = get_block_header_from_node(&client, height);
 
         //   println!("remote_header {:?}", remote_header);
         // Compare local and remote block headers
@@ -102,18 +91,18 @@ pub fn perform_spv_verification(conn: &Connection) {
 }
 
 // Function to compare local and remote block headers and display the differing field
-fn compare_block_headers(local: &BlockHeader, remote: &BitcoinBlockHeader) -> Option<String> {
-    if local.merkleroot != remote.merkle_root.to_string() {
-        return Some(format!("Merkle root differs: local={}, remote={}", local.merkleroot, remote.merkle_root));
+fn compare_block_headers(local: &BlockHeader, remote: &BlockHeader) -> Option<String> {
+    if local.merkleroot != remote.merkleroot.to_string() {
+        return Some(format!("Merkle root differs: local={}, remote={}", local.merkleroot, remote.merkleroot));
     }
-    if !compare_previous_block_hash(local.previousblockhash.as_deref(), Some(&remote.prev_blockhash.to_string())) {
-        return Some(format!("Previous block hash differs: local={:?}, remote={}", local.previousblockhash, remote.prev_blockhash));
+    if local.previousblockhash !=  remote.previousblockhash {
+        return Some(format!("Previous block hash differs: local={:?}, remote={:?}", local.previousblockhash, remote.previousblockhash));
     }
     if local.time != remote.time as u64 {
         return Some(format!("Time differs: local={}, remote={}", local.time, remote.time));
     }
-    if local.bits != format!("{:x}", remote.bits) {
-        return Some(format!("Bits differ: local={}, remote={:x}", local.bits, remote.bits));
+    if local.bits !=  remote.bits {
+        return Some(format!("Bits differ: local={}, remote={}", local.bits, remote.bits));
     }
     if local.nonce != remote.nonce {
         return Some(format!("Nonce differs: local={}, remote={}", local.nonce, remote.nonce));
@@ -124,15 +113,6 @@ fn compare_block_headers(local: &BlockHeader, remote: &BitcoinBlockHeader) -> Op
     None
 }
 
-// Function to compare previous block hashes, treating None and all-zero hash as equivalent
-fn compare_previous_block_hash(local: Option<&str>, remote: Option<&str>) -> bool {
-    let all_zero_hash = "0000000000000000000000000000000000000000000000000000000000000000";
-    match (local, remote) {
-        (None, Some(r)) if r == all_zero_hash => true,
-        (Some(l), Some(r)) if l == r => true,
-        _ => false,
-    }
-}
 
 // Function to format duration
 fn format_duration(duration: std::time::Duration) -> String {

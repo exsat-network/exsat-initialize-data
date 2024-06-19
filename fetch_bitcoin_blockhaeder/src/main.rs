@@ -9,7 +9,7 @@ use utils::create_db_connection;
 use std::io;
 
 
-const MAX_BLOCK_HEIGHT: u32 = 840000;
+const MAX_BLOCK_HEIGHT: u64 = 840000;
 
 fn main() {
     let conn: rusqlite::Connection = create_db_connection("block_headers.db").expect("Failed to create DB connection");

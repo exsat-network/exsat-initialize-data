@@ -20,7 +20,7 @@ pub struct GetBlockHeaderResponse {
 #[derive(Debug, Deserialize)]
 pub struct BlockHeader {
     pub hash: String,
-    pub height: u32,
+    pub height: u64,
     pub version: i32,
     pub previousblockhash: Option<String>,
     pub nextblockhash: Option<String>,
