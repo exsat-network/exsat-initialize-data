@@ -29,4 +29,5 @@ pub struct BlockHeader {
     pub bits: String,
     pub nonce: u32,
     pub difficulty: f64,
+    pub chainwork: String,  
 }

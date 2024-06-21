@@ -3,7 +3,7 @@ use crate::{types::BlockHeader, utils::get_env_var};
 use std::time::Instant;
 use reqwest::blocking::Client;
 use crate::utils::{ get_block_hash, get_block_header};
-
+use rusqlite::params; 
 
 // Function to get block header information from the local Bitcoin node
 fn get_block_header_from_node(client: &Client, block_height: u64) -> BlockHeader {
@@ -14,9 +14,24 @@ fn get_block_header_from_node(client: &Client, block_height: u64) -> BlockHeader
     block_header
 }
 
+fn get_last_verified_height(conn: &Connection) -> RusqliteResult<u64> {
+    let mut stmt = conn.prepare("SELECT MAX(height) FROM spv_progress")?;
+    let height: u64 = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
+    Ok(height)
+}
+
+fn save_last_verified_height(conn: &Connection, height: u64) -> RusqliteResult<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO spv_progress (height) VALUES (?1)",
+        params![height],
+    )?;
+    Ok(())
+}
+
 // Function to get block header information from the local database
 pub fn get_block_header_by_height(conn: &Connection, height: u64) -> RusqliteResult<BlockHeader> {
-    let mut stmt = conn.prepare("SELECT hash, height, version,  previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty FROM block_headers WHERE height = ?1")?;
+
+    let mut stmt = conn.prepare("SELECT hash, height, version,  previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty, chainwork FROM block_headers WHERE height = ?1")?;
     let block_header_iter = stmt.query_map([height], |row| {
         Ok(BlockHeader {
             hash: row.get(0)?,
@@ -29,6 +44,7 @@ pub fn get_block_header_by_height(conn: &Connection, height: u64) -> RusqliteRes
             bits: row.get(7)?,
             nonce: row.get(8)?,
             difficulty: row.get(9)?,
+            chainwork:  row.get(10)?,
         })
     })?;
 
@@ -43,9 +59,12 @@ pub fn perform_spv_verification(conn: &Connection) {
     // Configure connection to the local Bitcoin RPC node
     let client = Client::new();
 
+// Get the last verified block height
+    let last_verified_height = get_last_verified_height(conn).expect("Failed to get last verified height");
+
     // Prepare and execute SQL statement to get block heights from the local database
-    let mut stmt = conn.prepare("SELECT height FROM block_headers ORDER BY height").expect("Failed to prepare statement");
-    let mut rows = stmt.query([]).expect("Failed to query rows");
+    let mut stmt = conn.prepare("SELECT height FROM block_headers WHERE height > ?1 ORDER BY height").expect("Failed to prepare statement");
+    let mut rows = stmt.query([last_verified_height]).expect("Failed to query rows");
 
     let start_time = Instant::now();
     let mut processed_blocks = 0;
@@ -57,8 +76,8 @@ pub fn perform_spv_verification(conn: &Connection) {
     }
 
     // Reset rows iterator
-    let mut stmt = conn.prepare("SELECT height FROM block_headers ORDER BY height").expect("Failed to prepare statement");
-    let mut rows = stmt.query([]).expect("Failed to query rows");
+    let mut stmt = conn.prepare("SELECT height FROM block_headers WHERE height > ?1 ORDER BY height").expect("Failed to prepare statement");
+    let mut rows = stmt.query([last_verified_height]).expect("Failed to query rows");
 
     // Iterate over block heights and compare local and remote block headers
     while let Some(row) = rows.next().expect("Failed to fetch row") {
@@ -85,6 +104,9 @@ pub fn perform_spv_verification(conn: &Connection) {
             "Processed block height: {} (Progress: {}/{}, ETA: {})",
             height, processed_blocks, total_blocks, format_duration(eta)
         );
+
+        // Save progress
+        save_last_verified_height(conn, height).expect("Failed to save last verified height");
     }
 
     println!("All local block headers match remote data~");
