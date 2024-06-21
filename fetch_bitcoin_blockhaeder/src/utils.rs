@@ -24,7 +24,14 @@ pub fn create_db_connection(db_path: &str) -> Result<Connection> {
             time INTEGER,
             bits TEXT,
             nonce INTEGER,
-            difficulty REAL
+            difficulty REAL,
+            chainwork TEXT
+        )",
+        [],
+    )?;
+      conn.execute(
+        "CREATE TABLE IF NOT EXISTS spv_progress (
+            height INTEGER PRIMARY KEY
         )",
         [],
     )?;
@@ -91,7 +98,7 @@ pub fn get_block_header(client: &Client, block_hash: &str, url: String, username
 
 pub fn save_block_header(conn: &Connection, block_header: &BlockHeader) -> Result<()> {
     conn.execute(
-        "INSERT OR IGNORE INTO block_headers (hash, height, version, previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT OR IGNORE INTO block_headers (hash, height, version, previousblockhash, nextblockhash, merkleroot, time, bits, nonce, difficulty, chainwork) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             block_header.hash,
             block_header.height,
@@ -102,7 +109,8 @@ pub fn save_block_header(conn: &Connection, block_header: &BlockHeader) -> Resul
             block_header.time,
             block_header.bits,
             block_header.nonce,
-            block_header.difficulty
+            block_header.difficulty,
+            block_header.chainwork,
         ],
     )?;
     Ok(())
