@@ -10,46 +10,58 @@ import (
 )
 
 func main() {
-	dbPath := "/mnt/electrumx/db/utxo" // Update this path to your LevelDB directory
-	db, err := leveldb.OpenFile(dbPath, nil)
-	if err != nil {
-		log.Fatalf("Failed to open LevelDB: %v", err)
-	}
-	defer db.Close()
+    db, err := leveldb.OpenFile("/mnt/electrumx/db/utxo", nil)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer db.Close()
 
-	iter := db.NewIterator(nil, nil)
-	for iter.Next() {
-		key := iter.Key()
-		value := iter.Value()
+    iter := db.NewIterator(nil, nil)
+    for iter.Next() {
+        key := iter.Key()
+        value := iter.Value()
 
-		// Decode the key
-		if len(key) != 12 {
-			fmt.Printf("Unexpected key length: %d\n", len(key))
-			continue
-		}
+        txID, txPos, err := decodeKey(key)
+        if err != nil {
+            log.Printf("Failed to decode key: %v", err)
+            continue
+        }
 
-		prefix := key[0]
-		blockHeight := binary.BigEndian.Uint32(key[1:5])
-		txPos := binary.BigEndian.Uint32(key[5:9])
-		outputIndex := binary.BigEndian.Uint32(key[9:12])
+        txNum, height, amount, err := decodeValue(value)
+        if err != nil {
+            log.Printf("Failed to decode value: %v", err)
+            continue
+        }
 
-		fmt.Printf("Key:\n  Prefix: 0x%x\n  Block Height: %d\n  Tx Position: %d\n  Output Index: %d\n", prefix, blockHeight, txPos, outputIndex)
-
-		// Decode the value
-		if len(value) < 9 {
-			fmt.Printf("Unexpected value length: %d\n", len(value))
-			continue
-		}
-
-		txValue := binary.LittleEndian.Uint64(value[:8])
-		scriptLen := value[8]
-		scriptPubKey := value[9 : 9+scriptLen]
-
-		fmt.Printf("Value:\n  Tx Value (satoshis): %d\n  Script Length: %d\n  ScriptPubKey: %s\n\n", txValue, scriptLen, hex.EncodeToString(scriptPubKey))
-	}
-
-	iter.Release()
-	if err := iter.Error(); err != nil {
-		log.Fatalf("Iterator error: %v", err)
-	}
+        fmt.Printf("TXID: %s, Vout: %d, TXNum: %d, Height: %d, Value: %d\n", txID, txPos, txNum, height, amount)
+    }
+    iter.Release()
+    err = iter.Error()
+    if err != nil {
+        log.Fatal(err)
+    }
 }
+
+func decodeKey(key []byte) (string, uint32, error) {
+    if len(key) != 36 {
+        return "", 0, fmt.Errorf("unexpected key length: %d", len(key))
+    }
+
+    txID := hex.EncodeToString(key[:32])
+    txPos := binary.BigEndian.Uint32(key[32:])
+
+    return txID, txPos, nil
+}
+
+func decodeValue(value []byte) (uint64, uint32, uint64, error) {
+    if len(value) != 12 {
+        return 0, 0, 0, fmt.Errorf("unexpected value length: %d", len(value))
+    }
+
+    txNum := binary.BigEndian.Uint64(value[:8])
+    height := binary.BigEndian.Uint32(value[8:12])
+    amount := binary.BigEndian.Uint64(value[12:20])
+
+    return txNum, height, amount, nil
+}
+
