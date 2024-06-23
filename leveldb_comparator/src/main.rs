@@ -61,6 +61,12 @@ fn get_last_key(conn: &Connection) -> Result<Option<String>> {
     Ok(last_key)
 }
 
+fn get_total_saved_utxos(conn: &Connection) -> Result<i64> {
+    let mut stmt = conn.prepare("SELECT COUNT(*) FROM utxos")?;
+    let total_saved_utxos: i64 = stmt.query_row([], |row| row.get(0)).optional()?.unwrap_or(0);
+    Ok(total_saved_utxos)
+}
+
 fn main() -> Result<()> {
     let client = Client::builder()
         .timeout(Duration::from_secs(10))
@@ -94,7 +100,10 @@ fn main() -> Result<()> {
         url = format!("http://localhost:8080/proxy/all_utxos?limit=100&startkey={}", last_key);
     }
 
-    let mut total_saved_utxos = 0;
+    let mut total_saved_utxos = match get_total_saved_utxos(&conn) {
+        Ok(count) => count,
+        Err(_) => 0,
+    };
 
     loop {
         println!("Fetching UTXOs from URL: {}", url);
