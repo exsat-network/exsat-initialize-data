@@ -11,7 +11,7 @@ struct Utxo {
     txid: String,
     vout: i64,
     value: i64,
-    scriptPubKeyHex: String, 
+    scriptPubKeyHex: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,11 +28,24 @@ fn fetch_utxos(client: &Client, url: &str) -> Result<ApiResponse, reqwest::Error
 fn save_utxos(conn: &Connection, utxos: &[Utxo]) -> Result<usize> {
     let mut count = 0;
     for utxo in utxos {
-        let rows_affected = conn.execute(
+        let result = conn.execute(
             "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value, scriptPubKeyHex) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value, utxo.scriptPubKeyHex],
-        )?;
-        count += rows_affected;
+        );
+
+        match result {
+            Ok(rows_affected) => {
+                if rows_affected > 0 {
+                    println!("Saved UTXO: {:?}", utxo);
+                    count += rows_affected;
+                } else {
+                    println!("Duplicate UTXO ignored: {:?}", utxo);
+                }
+            }
+            Err(err) => {
+                println!("Failed to save UTXO: {:?}, error: {:?}", utxo, err);
+            }
+        }
     }
     Ok(count)
 }
@@ -51,27 +64,23 @@ fn get_last_key(conn: &Connection) -> Result<Option<String>> {
     Ok(last_key)
 }
 
-fn get_utxo_count(conn: &Connection) -> Result<i64> {
-    let count: i64 = conn.query_row("SELECT COUNT(*) FROM utxos", [], |row| row.get(0))?;
-    Ok(count)
-}
-
 fn main() -> Result<()> {
     let client = Client::builder()
-        .timeout(Duration::from_secs(5)) 
+        .timeout(Duration::from_secs(5))
         .build()
         .expect("Failed to build HTTP client");
 
-    let db_path = "/mnt3/utxos_sqlite/utxos_sql.db";
+    let db_path = "utxos.db";
     let conn = Connection::open(db_path)?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS utxos (
             height INTEGER,
             address TEXT,
-            txid TEXT UNIQUE,
+            txid TEXT,
             vout INTEGER,
             value INTEGER,
-            scriptPubKeyHex TEXT
+            scriptPubKeyHex TEXT,
+            UNIQUE(txid, vout)
         )",
         [],
     )?;
@@ -83,37 +92,44 @@ fn main() -> Result<()> {
         [],
     )?;
 
-    let mut url = "http://localhost:8080/proxy/all_utxos?limit=200".to_string();
+    let mut url = "http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=500".to_string();
     if let Some(last_key) = get_last_key(&conn)? {
-        url = format!("http://localhost:8080/proxy/all_utxos?limit=200&last_key={}", last_key);
+        url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=500&last_key={}", last_key);
     }
+
+    let mut total_saved_utxos = 0;
 
     loop {
-        match fetch_utxos(&client, &url) {
-            Ok(response) => {
-                let saved_count = save_utxos(&conn, &response.utxos)?;
-                let total_count = get_utxo_count(&conn)?;
-                println!("Saved {} UTXOs, total UTXOs saved: {}", saved_count, total_count);
+        println!("Fetching UTXOs from URL: {}", url);
+        let response = fetch_utxos(&client, &url);
 
-                if response.utxos.len() < 200 {
-                    println!("Fetched less than limit, stopping.");
-                    break;
-                }
+        if response.is_err() {
+            println!("Request failed: {}. Retrying...", response.unwrap_err());
+            std::thread::sleep(Duration::from_secs(5));
+            continue;
+        }
 
-                if let Some(last_key) = response.last_key {
-                    save_last_key(&conn, &last_key)?;
-                    url = format!("http://localhost:8080/proxy/all_utxos?limit=200&last_key={}", last_key);
-                } else {
-                    println!("No last_key provided, stopping.");
-                    break;
-                }
-            }
-            Err(e) => {
-                println!("Request failed: {}. Retrying...", e);
-                std::thread::sleep(Duration::from_secs(5));
-            }
+        let response = response.unwrap();
+        println!("Fetched {} UTXOs", response.utxos.len());
+        let saved_count = save_utxos(&conn, &response.utxos)?;
+        total_saved_utxos += saved_count;
+        println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
+
+        if response.utxos.len() < 500 {
+            println!("Fetched less than limit, stopping.");
+            break;
+        }
+
+        if let Some(last_key) = response.last_key {
+            save_last_key(&conn, &last_key)?;
+            url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=500&last_key={}", last_key);
+        } else {
+            println!("No last_key provided, stopping.");
+            break;
         }
     }
+
+    println!("Total UTXOs saved: {}", total_saved_utxos);
 
     Ok(())
 }
