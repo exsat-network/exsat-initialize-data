@@ -1,73 +1,133 @@
-use rocksdb::{DB, Options, DBWithThreadMode, SingleThreaded, ReadOptions};
-use md5::Context;
-use std::path::Path;
-use std::collections::HashMap;
-use std::io::{self, Write};
+use reqwest::blocking::Client;
+use serde::{Deserialize, Serialize};
+use rusqlite::{params, Connection, Result};
+use rusqlite::OptionalExtension;
+use std::time::Duration;
 
-// Function to calculate the MD5 hash of a single RocksDB file and print a few entries
-fn calculate_file_md5(db: &DBWithThreadMode<SingleThreaded>, print_entries: bool) -> String {
-    let mut hasher = Context::new();
-    let mut roptions = ReadOptions::default();
-    roptions.fill_cache(false);
-    let iter = db.iterator_opt(rocksdb::IteratorMode::Start, roptions);
+#[derive(Debug, Serialize, Deserialize)]
+struct Utxo {
+    height: i64,
+    address: String,
+    txid: String,
+    vout: i64,
+    value: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ApiResponse {
+    last_key: Option<String>,
+    utxos: Vec<Utxo>,
+}
+
+fn fetch_utxos(client: &Client, url: &str) -> Result<ApiResponse, reqwest::Error> {
+    let response = client.get(url).send()?.json::<ApiResponse>()?;
+    Ok(response)
+}
+
+fn save_utxos(conn: &Connection, utxos: &[Utxo]) -> Result<usize> {
     let mut count = 0;
+    for utxo in utxos {
+        let rows_affected = conn.execute(
+            "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value],
+        )?;
+        count += rows_affected;
+    }
+    Ok(count)
+}
 
-    for item in iter {
-        match item {
-            Ok((key, value)) => {
-                hasher.consume(&key);
-                hasher.consume(&value);
+fn save_last_key(conn: &Connection, last_key: &str) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO progress (id, last_key) VALUES (1, ?1)",
+        params![last_key],
+    )?;
+    Ok(())
+}
 
-                if print_entries && count < 5 {
-                    println!("Key: {:?}, Value: {:?}", key, value);
-                    count += 1;
+fn get_last_key(conn: &Connection) -> Result<Option<String>> {
+    let mut stmt = conn.prepare("SELECT last_key FROM progress WHERE id = 1")?;
+    let last_key: Option<String> = stmt.query_row([], |row| row.get(0)).optional()?;
+    Ok(last_key)
+}
+
+fn get_utxo_count(conn: &Connection) -> Result<i64> {
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM utxos", [], |row| row.get(0))?;
+    Ok(count)
+}
+
+fn main() -> Result<()> {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .expect("Failed to build HTTP client");
+
+    let db_path = "utxos.db";
+    let conn = Connection::open(db_path)?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS utxos (
+            height INTEGER,
+            address TEXT,
+            txid TEXT UNIQUE,
+            vout INTEGER,
+            value INTEGER
+        )",
+        [],
+    )?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS progress (
+            id INTEGER PRIMARY KEY,
+            last_key TEXT
+        )",
+        [],
+    )?;
+
+    let mut url = "http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=1000".to_string();
+    if let Some(last_key) = get_last_key(&conn)? {
+        url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=1000&last_key={}", last_key);
+    }
+
+    loop {
+        match fetch_utxos(&client, &url) {
+            Ok(response) => {
+                let saved_count = save_utxos(&conn, &response.utxos)?;
+                let total_count = get_utxo_count(&conn)?;
+                println!("Saved {} UTXOs, total UTXOs saved: {}", saved_count, total_count);
+
+                if response.utxos.len() < 1000 {
+                    println!("Fetched less than limit, stopping.");
+                    break;
                 }
-            },
-            Err(e) => eprintln!("Error iterating over the database: {}", e),
-        }
-    }
-    format!("{:x}", hasher.compute())
-}
 
-// Function to calculate the MD5 hashes of all RocksDB files in a directory
-fn calculate_directory_md5(directory_path: &Path) -> Result<HashMap<String, String>, String> {
-    let mut file_hashes = HashMap::new();
-    let options = Options::default();
-    let db = DBWithThreadMode::<SingleThreaded>::open_for_read_only(&options, directory_path, false)
-        .map_err(|e| format!("Failed to open RocksDB at {:?}: {}", directory_path, e))?;
-    let file_hash = calculate_file_md5(&db, true); // Enable printing of entries
-    file_hashes.insert("rocksdb_db".to_string(), file_hash);
-    Ok(file_hashes)
-}
-
-// Function to read input from the user
-fn read_input(prompt: &str) -> String {
-    print!("{}", prompt);
-    io::stdout().flush().unwrap();
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    input.trim().to_string()
-}
-
-// Main function to calculate and save hashes
-fn main() {
-    let dir_path = read_input("Enter the directory path to RocksDB files: ");
-    let dir = Path::new(&dir_path);
-
-    if !dir.exists() {
-        println!("The provided directory does not exist.");
-        return;
-    }
-
-    match calculate_directory_md5(dir) {
-        Ok(hashes) => {
-            // Example: print hashes
-            for (filename, hash) in &hashes {
-                println!("File: {}, MD5: {}", filename, hash);
+                if let Some(last_key) = response.last_key {
+                    save_last_key(&conn, &last_key)?;
+                    url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=1000&last_key={}", last_key);
+                } else {
+                    println!("No last_key provided, stopping.");
+                    break;
+                }
+            }
+            Err(e) => {
+                println!("Request failed: {}. Retrying...", e);
+                std::thread::sleep(Duration::from_secs(5));
             }
         }
-        Err(e) => {
-            eprintln!("Error: {}", e);
-        }
     }
+
+    // Example: Query and sort UTXOs
+    // let mut stmt = conn.prepare("SELECT * FROM utxos ORDER BY height DESC, vout DESC, value DESC")?;
+    // let utxo_iter = stmt.query_map([], |row| {
+    //     Ok(Utxo {
+    //         height: row.get(0)?,
+    //         address: row.get(1)?,
+    //         txid: row.get(2)?,
+    //         vout: row.get(3)?,
+    //         value: row.get(4)?,
+    //     })
+    // })?;
+
+    // for utxo in utxo_iter {
+    //     println!("{:?}", utxo?);
+    // }
+
+    Ok(())
 }
