@@ -15,3 +15,23 @@ Thumbs.db
 Cargo.lock
 *.db
 .env
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below if you use dep)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Go modules
+*.sum
+
+# Log files
+*.log
+

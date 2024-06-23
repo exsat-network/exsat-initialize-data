@@ -19,11 +19,6 @@ gvm install go1.19
 # Set the default Go version
 gvm use go1.19 --default
 
-# Install Go 1.18 (or any other version you need)
-gvm install go1.18
-
-# Install Go 1.17 (or any other version you need)
-gvm install go1.17
 
 # Verify Go installation
 go version

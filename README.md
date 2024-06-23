@@ -14,3 +14,8 @@ Before running the programs, ensure you have Rust installed on your system. You 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
+```
+
+```
+go mod tidy
+```
