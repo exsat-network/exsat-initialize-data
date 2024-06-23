@@ -11,7 +11,7 @@ struct Utxo {
     txid: String,
     vout: i64,
     value: i64,
-    scriptPubKeyHex: String, // 添加新的字段
+    scriptPubKeyHex: String, 
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,11 +58,11 @@ fn get_utxo_count(conn: &Connection) -> Result<i64> {
 
 fn main() -> Result<()> {
     let client = Client::builder()
-        .timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(5)) 
         .build()
         .expect("Failed to build HTTP client");
 
-    let db_path = "/mnt2/utxos_sqlite.db";
+    let db_path = "/mnt3/utxos_sql.db";
     let conn = Connection::open(db_path)?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS utxos (
