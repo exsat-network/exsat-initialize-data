@@ -11,6 +11,7 @@ struct Utxo {
     txid: String,
     vout: i64,
     value: i64,
+    scriptPubKeyHex: String, // 添加新的字段
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,8 +29,8 @@ fn save_utxos(conn: &Connection, utxos: &[Utxo]) -> Result<usize> {
     let mut count = 0;
     for utxo in utxos {
         let rows_affected = conn.execute(
-            "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value],
+            "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value, scriptPubKeyHex) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value, utxo.scriptPubKeyHex],
         )?;
         count += rows_affected;
     }
@@ -69,7 +70,8 @@ fn main() -> Result<()> {
             address TEXT,
             txid TEXT UNIQUE,
             vout INTEGER,
-            value INTEGER
+            value INTEGER,
+            scriptPubKeyHex TEXT
         )",
         [],
     )?;
@@ -81,9 +83,9 @@ fn main() -> Result<()> {
         [],
     )?;
 
-    let mut url = "http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=1000".to_string();
+    let mut url = "http://localhost:8080/proxy/all_utxos?limit=1000".to_string();
     if let Some(last_key) = get_last_key(&conn)? {
-        url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=1000&last_key={}", last_key);
+        url = format!("http://localhost:8080/proxy/all_utxos?limit=1000&last_key={}", last_key);
     }
 
     loop {
@@ -100,7 +102,7 @@ fn main() -> Result<()> {
 
                 if let Some(last_key) = response.last_key {
                     save_last_key(&conn, &last_key)?;
-                    url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=1000&last_key={}", last_key);
+                    url = format!("http://localhost:8080/proxy/all_utxos?limit=1000&last_key={}", last_key);
                 } else {
                     println!("No last_key provided, stopping.");
                     break;
@@ -112,22 +114,6 @@ fn main() -> Result<()> {
             }
         }
     }
-
-    // Example: Query and sort UTXOs
-    // let mut stmt = conn.prepare("SELECT * FROM utxos ORDER BY height DESC, vout DESC, value DESC")?;
-    // let utxo_iter = stmt.query_map([], |row| {
-    //     Ok(Utxo {
-    //         height: row.get(0)?,
-    //         address: row.get(1)?,
-    //         txid: row.get(2)?,
-    //         vout: row.get(3)?,
-    //         value: row.get(4)?,
-    //     })
-    // })?;
-
-    // for utxo in utxo_iter {
-    //     println!("{:?}", utxo?);
-    // }
 
     Ok(())
 }
