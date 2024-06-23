@@ -118,7 +118,7 @@ fn main() -> Result<()> {
         let response = response.unwrap();
         println!("Fetched {} UTXOs", response.utxos.len());
         let saved_count = save_utxos(&conn, &response.utxos)?;
-        total_saved_utxos += saved_count;
+        total_saved_utxos += saved_count as i64;
         println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
 
         if response.utxos.len() < 100 {
