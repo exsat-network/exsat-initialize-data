@@ -1,51 +1,55 @@
 package main
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 func main() {
-    // Change this to the path of your LevelDB directory
-    dbPath := "/mnt/electrumx/db/utxo"
+	dbPath := "/mnt/electrumx/db/utxo" // Update this path to your LevelDB directory
+	db, err := leveldb.OpenFile(dbPath, nil)
+	if err != nil {
+		log.Fatalf("Failed to open LevelDB: %v", err)
+	}
+	defer db.Close()
 
-    // Open the LevelDB database
-    db, err := leveldb.OpenFile(dbPath, &opt.Options{
-        ReadOnly: true,
-    })
-    if err != nil {
-        log.Fatalf("Failed to open LevelDB: %v", err)
-    }
-    defer db.Close()
+	iter := db.NewIterator(nil, nil)
+	for iter.Next() {
+		key := iter.Key()
+		value := iter.Value()
 
-    // Create an iterator to read the database
-    iter := db.NewIterator(&util.Range{}, nil)
-    defer iter.Release()
+		// Decode the key
+		if len(key) != 12 {
+			fmt.Printf("Unexpected key length: %d\n", len(key))
+			continue
+		}
 
-    count := 0
-    // Iterate over the database
-    for iter.Next() {
-        key := iter.Key()
-        value := iter.Value()
+		prefix := key[0]
+		blockHeight := binary.BigEndian.Uint32(key[1:5])
+		txPos := binary.BigEndian.Uint32(key[5:9])
+		outputIndex := binary.BigEndian.Uint32(key[9:12])
 
-        fmt.Printf("Key: %x\n", key)
-        fmt.Printf("Value: %x\n", value)
-        count++
+		fmt.Printf("Key:\n  Prefix: 0x%x\n  Block Height: %d\n  Tx Position: %d\n  Output Index: %d\n", prefix, blockHeight, txPos, outputIndex)
 
-        // Break after reading 100 entries to avoid overwhelming output (remove this for full iteration)
-        if count >= 100 {
-            break
-        }
-    }
+		// Decode the value
+		if len(value) < 9 {
+			fmt.Printf("Unexpected value length: %d\n", len(value))
+			continue
+		}
 
-    // Check for errors during iteration
-    if err := iter.Error(); err != nil {
-        log.Fatalf("Iterator error: %v", err)
-    }
+		txValue := binary.LittleEndian.Uint64(value[:8])
+		scriptLen := value[8]
+		scriptPubKey := value[9 : 9+scriptLen]
 
-    fmt.Printf("Read %d entries from LevelDB\n", count)
+		fmt.Printf("Value:\n  Tx Value (satoshis): %d\n  Script Length: %d\n  ScriptPubKey: %s\n\n", txValue, scriptLen, hex.EncodeToString(scriptPubKey))
+	}
+
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		log.Fatalf("Iterator error: %v", err)
+	}
 }
