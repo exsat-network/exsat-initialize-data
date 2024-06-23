@@ -36,10 +36,7 @@ fn save_utxos(conn: &Connection, utxos: &[Utxo]) -> Result<usize> {
         match result {
             Ok(rows_affected) => {
                 if rows_affected > 0 {
-                    println!("Saved UTXO: {:?}", utxo);
                     count += rows_affected;
-                } else {
-                    println!("Duplicate UTXO ignored: {:?}", utxo);
                 }
             }
             Err(err) => {
@@ -92,9 +89,9 @@ fn main() -> Result<()> {
         [],
     )?;
 
-    let mut url = "http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=500".to_string();
+    let mut url = "http://localhost:8080/proxy/all_utxos?limit=500".to_string();
     if let Some(last_key) = get_last_key(&conn)? {
-        url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=500&last_key={}", last_key);
+        url = format!("http://localhost:8080/proxy/all_utxos?limit=500&startkey={}", last_key);
     }
 
     let mut total_saved_utxos = 0;
@@ -122,7 +119,7 @@ fn main() -> Result<()> {
 
         if let Some(last_key) = response.last_key {
             save_last_key(&conn, &last_key)?;
-            url = format!("http://rpc.regtest.exactsat.io:8081/proxy/all_utxos?limit=500&last_key={}", last_key);
+            url = format!("http://localhost:8080/proxy/all_utxos?limit=500&startkey={}", last_key);
         } else {
             println!("No last_key provided, stopping.");
             break;
