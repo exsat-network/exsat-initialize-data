@@ -62,7 +62,7 @@ fn main() -> Result<()> {
         .build()
         .expect("Failed to build HTTP client");
 
-    let db_path = "/mnt3/utxos_sql.db";
+    let db_path = "/mnt3/utxos_sqlite/utxos_sql.db";
     let conn = Connection::open(db_path)?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS utxos (
