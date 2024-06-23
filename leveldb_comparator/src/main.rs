@@ -63,7 +63,7 @@ fn get_last_key(conn: &Connection) -> Result<Option<String>> {
 
 fn main() -> Result<()> {
     let client = Client::builder()
-        .timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(10))
         .build()
         .expect("Failed to build HTTP client");
 
@@ -102,7 +102,7 @@ fn main() -> Result<()> {
 
         if response.is_err() {
             println!("Request failed: {}. Retrying...", response.unwrap_err());
-            std::thread::sleep(Duration::from_secs(5));
+            std::thread::sleep(Duration::from_secs(10));
             continue;
         }
 
