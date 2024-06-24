@@ -69,7 +69,7 @@ fn get_total_saved_utxos(conn: &Connection) -> Result<i64> {
 
 fn main() -> Result<()> {
     let client = Client::builder()
-        .timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(5))
         .build()
         .expect("Failed to build HTTP client");
 
@@ -95,9 +95,15 @@ fn main() -> Result<()> {
         [],
     )?;
 
-    let mut url = "http://localhost:8080/proxy/all_utxos?limit=200".to_string();
+    // 添加索引
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_utxos_height_txid_vout ON utxos (height, txid, vout)",
+        [],
+    )?;
+
+    let mut url = "http://localhost:8080/proxy/all_utxos?limit=100".to_string();
     if let Some(last_key) = get_last_key(&conn)? {
-        url = format!("http://localhost:8080/proxy/all_utxos?limit=200&startkey={}", last_key);
+        url = format!("http://localhost:8080/proxy/all_utxos?limit=100&startkey={}", last_key);
     }
 
     let mut total_saved_utxos = match get_total_saved_utxos(&conn) {
@@ -121,14 +127,14 @@ fn main() -> Result<()> {
         total_saved_utxos += saved_count as i64;
         println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
 
-        if response.utxos.len() < 200 {
+        if response.utxos.len() < 100 {
             println!("Fetched less than limit, stopping.");
             break;
         }
 
         if let Some(last_key) = response.last_key {
             save_last_key(&conn, &last_key)?;
-            url = format!("http://localhost:8080/proxy/all_utxos?limit=200&startkey={}", last_key);
+            url = format!("http://localhost:8080/proxy/all_utxos?limit=100&startkey={}", last_key);
         } else {
             println!("No last_key provided, stopping.");
             break;
