@@ -12,7 +12,7 @@ struct Utxo {
     txid: String,
     vout: i64,
     value: i64,
-    scriptPubKey: String,
+    scriptPubKey: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
