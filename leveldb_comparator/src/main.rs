@@ -48,8 +48,8 @@ fn save_utxos(tx: &Transaction, utxos: &[Utxo]) -> Result<usize> {
     Ok(count)
 }
 
-fn save_last_key(conn: &Connection, last_key: &str) -> Result<()> {
-    conn.execute(
+fn save_last_key(tx: &Transaction, last_key: &str) -> Result<()> {
+    tx.execute(
         "INSERT OR REPLACE INTO progress (id, last_key) VALUES (1, ?1)",
         params![last_key],
     )?;
@@ -75,9 +75,9 @@ fn main() -> Result<()> {
         .expect("Failed to build HTTP client");
 
     let db_path = "/mnt3/utxos_sqlite/utxos.db";
-    let mut conn = Connection::open(db_path)?;
+    let mut conn = Connection::open(":memory:")?;
     conn.execute("PRAGMA synchronous = OFF", [])?;
-    conn.execute("PRAGMA journal_mode = WAL", [])?;
+    conn.execute("PRAGMA journal_mode = MEMORY", [])?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS utxos (
             height INTEGER,
@@ -113,31 +113,28 @@ fn main() -> Result<()> {
         Err(_) => 0,
     };
 
-    let batch_size = 10_000;
-    let mut utxo_buffer: Vec<Utxo> = Vec::with_capacity(batch_size);
-
     loop {
         println!("Fetching UTXOs from URL: {}", url);
         let response = fetch_utxos(&client, &url);
 
-        if let Err(err) = response {
-            println!("Request failed: {}. Retrying...", err);
+        if response.is_err() {
+            println!("Request failed: {}. Retrying...", response.unwrap_err());
             std::thread::sleep(Duration::from_secs(30));
             continue;
         }
 
         let response = response.unwrap();
         println!("Fetched {} UTXOs", response.utxos.len());
-        utxo_buffer.extend(response.utxos.clone());
 
-        if utxo_buffer.len() >= batch_size {
-            let tx = conn.transaction()?;
-            let saved_count = save_utxos(&tx, &utxo_buffer)?;
-            tx.commit()?;
-            total_saved_utxos += saved_count as i64;
-            println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
-            utxo_buffer.clear();
+        let tx = conn.transaction()?;
+        let saved_count = save_utxos(&tx, &response.utxos)?;
+        if let Some(last_key) = &response.last_key {
+            save_last_key(&tx, last_key)?;
         }
+        tx.commit()?;
+
+        total_saved_utxos += saved_count as i64;
+        println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
 
         if response.utxos.len() < 1000 {
             println!("Fetched less than limit, stopping.");
@@ -145,7 +142,6 @@ fn main() -> Result<()> {
         }
 
         if let Some(last_key) = response.last_key {
-            save_last_key(&conn, &last_key)?;
             url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
         } else {
             println!("No last_key provided, stopping.");
@@ -153,15 +149,12 @@ fn main() -> Result<()> {
         }
     }
 
-    // Save any remaining UTXOs
-    if !utxo_buffer.is_empty() {
-        let tx = conn.transaction()?;
-        let saved_count = save_utxos(&tx, &utxo_buffer)?;
-        tx.commit()?;
-        total_saved_utxos += saved_count as i64;
-        println!("Saved {} remaining UTXOs, total UTXOs saved: {}", saved_count, total_saved_utxos);
-    }
-
+    // Export the in-memory database to a file
+    let disk_conn = Connection::open(db_path)?;
+    conn.backup(rusqlite::DatabaseName::Main, &disk_conn, Some(|progress| {
+        println!("Backup progress: {} pages remaining", progress.pagecount - progress.remaining);
+    }))?;
+    
     println!("Total UTXOs saved: {}", total_saved_utxos);
 
     Ok(())
