@@ -1,12 +1,10 @@
-use reqwest::Client;
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
-use clickhouse::{Client as CHClient, Row, error::Error as CHError};
+use rusqlite::{params, Connection, Result};
+use rusqlite::OptionalExtension;
 use std::time::Duration;
-use tokio;
-use log::{info, error};
-use thiserror::Error;
 
-#[derive(Debug, Serialize, Deserialize, Row)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Utxo {
     height: i64,
     #[serde(default)]
@@ -23,130 +21,128 @@ struct ApiResponse {
     utxos: Vec<Utxo>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Row)]
-struct LastKeyRow {
-    last_key: String,
+fn fetch_utxos(client: &Client, url: &str) -> Result<ApiResponse, reqwest::Error> {
+    let response = client.get(url).send()?.json::<ApiResponse>()?;
+    Ok(response)
 }
 
-#[derive(Error, Debug)]
-enum AppError {
-    #[error("Reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
-    #[error("Clickhouse error: {0}")]
-    ClickhouseError(#[from] CHError),
-    #[error("Other error: {0}")]
-    Other(String),
-}
-
-async fn fetch_utxos(client: &Client, url: &str) -> Result<ApiResponse, AppError> {
-    Ok(client.get(url).send().await?.json::<ApiResponse>().await?)
-}
-
-async fn save_utxos(ch_client: &CHClient, utxos: &[Utxo]) -> Result<(), AppError> {
-    let mut insert = ch_client.insert("blockchain.utxos")?;
+fn save_utxos(conn: &Connection, utxos: &[Utxo]) -> Result<usize> {
+    let mut count = 0;
     for utxo in utxos {
-        insert.write(utxo).await?;
+        let result = conn.execute(
+            "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value, scriptPubKey) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value, utxo.scriptPubKey],
+        );
+
+        match result {
+            Ok(rows_affected) => {
+                if rows_affected > 0 {
+                    count += rows_affected;
+                }
+            }
+            Err(err) => {
+                println!("Failed to save UTXO: {:?}, error: {:?}", utxo, err);
+            }
+        }
     }
-    insert.end().await?;
+    Ok(count)
+}
+
+fn save_last_key(conn: &Connection, last_key: &str) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO progress (id, last_key) VALUES (1, ?1)",
+        params![last_key],
+    )?;
     Ok(())
 }
 
-async fn save_last_key(ch_client: &CHClient, last_key: &str) -> Result<(), AppError> {
-    ch_client.query("INSERT INTO blockchain.progress (id, last_key) VALUES (1, ?)")
-        .bind(last_key)
-        .execute()
-        .await?;
-    Ok(())
+fn get_last_key(conn: &Connection) -> Result<Option<String>> {
+    let mut stmt = conn.prepare("SELECT last_key FROM progress WHERE id = 1")?;
+    let last_key: Option<String> = stmt.query_row([], |row| row.get(0)).optional()?;
+    Ok(last_key)
 }
 
-async fn get_last_key(ch_client: &CHClient) -> Result<Option<String>, AppError> {
-    let mut cursor = ch_client
-        .query("SELECT last_key FROM blockchain.progress WHERE id = 1")
-        .fetch::<LastKeyRow>()?;
-    
-    if let Some(row) = cursor.next().await? {
-        Ok(Some(row.last_key))
-    } else {
-        Ok(None)
-    }
+fn get_total_saved_utxos(conn: &Connection) -> Result<i64> {
+    let mut stmt = conn.prepare("SELECT COUNT(*) FROM utxos")?;
+    let total_saved_utxos: i64 = stmt.query_row([], |row| row.get(0)).optional()?.unwrap_or(0);
+    Ok(total_saved_utxos)
 }
 
-async fn setup_database(ch_client: &CHClient) -> Result<(), AppError> {
-    ch_client.query("CREATE DATABASE IF NOT EXISTS blockchain").execute().await?;
-    ch_client.query("CREATE TABLE IF NOT EXISTS blockchain.utxos (
-            height Int64,
-            address Nullable(String),
-            txid String,
-            vout Int64,
-            value Int64,
-            scriptPubKey String
-        ) ENGINE = MergeTree()
-        ORDER BY (height, txid, vout)").execute().await?;
-    ch_client.query("CREATE TABLE IF NOT EXISTS blockchain.progress (
-            id Int32,
-            last_key String
-        ) ENGINE = TinyLog").execute().await?;
-    Ok(())
-}
-
-#[tokio::main]
-async fn main() -> Result<(), AppError> {
-    env_logger::init();
-
+fn main() -> Result<()> {
     let client = Client::builder()
         .timeout(Duration::from_secs(10))
         .build()
         .expect("Failed to build HTTP client");
 
-    let ch_client = CHClient::default().with_url("http://localhost:8123");
+    let db_path = "/mnt3/utxos_sqlite/utxos.db";
+    let conn = Connection::open(db_path)?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS utxos (
+            height INTEGER,
+            address TEXT,
+            txid TEXT,
+            vout INTEGER,
+            value INTEGER,
+            scriptPubKey TEXT,
+            UNIQUE(txid, vout)
+        )",
+        [],
+    )?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS progress (
+            id INTEGER PRIMARY KEY,
+            last_key TEXT
+        )",
+        [],
+    )?;
 
-    setup_database(&ch_client).await?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_utxos_height_txid_vout ON utxos (height, txid, vout)",
+        [],
+    )?;
 
     let mut url = "http://localhost:8081/proxy/all_utxos?limit=1000".to_string();
-    if let Some(last_key) = get_last_key(&ch_client).await? {
+    if let Some(last_key) = get_last_key(&conn)? {
         url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
     }
 
-    let mut total_saved_utxos = 0;
-    let mut retry_count = 0;
-    const MAX_RETRIES: u32 = 5;
+    let mut total_saved_utxos = match get_total_saved_utxos(&conn) {
+        Ok(count) => count,
+        Err(_) => 0,
+    };
 
     loop {
-        info!("Fetching UTXOs from URL: {}", url);
-        match fetch_utxos(&client, &url).await {
-            Ok(response) => {
-                info!("Fetched {} UTXOs", response.utxos.len());
-                save_utxos(&ch_client, &response.utxos).await?;
-                total_saved_utxos += response.utxos.len();
-                info!("Saved {} UTXOs in this batch, total UTXOs saved: {}", response.utxos.len(), total_saved_utxos);
+        println!("Fetching UTXOs from URL: {}", url);
+        let response = fetch_utxos(&client, &url);
 
-                retry_count = 0;
+        if response.is_err() {
+            println!("Request failed: {}. Retrying...", response.unwrap_err());
+            std::thread::sleep(Duration::from_secs(30));
+            continue;
+        }
 
-                if response.utxos.len() < 1000 {
-                    info!("Fetched less than limit, stopping.");
-                    break;
-                }
+        let response = response.unwrap();
+        println!("Fetched {} UTXOs", response.utxos.len());
+        let saved_count = save_utxos(&conn, &response.utxos)?;
+        total_saved_utxos += saved_count as i64;
+        println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
 
-                if let Some(last_key) = response.last_key {
-                    save_last_key(&ch_client, &last_key).await?;
-                    url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
-                } else {
-                    info!("No last_key provided, stopping.");
-                    break;
-                }
-            }
-            Err(e) => {
-                error!("Request failed: {}. Retrying...", e);
-                retry_count += 1;
-                if retry_count >= MAX_RETRIES {
-                    return Err(AppError::Other("Max retries reached".to_string()));
-                }
-                tokio::time::sleep(Duration::from_secs(30)).await;
-            }
+        if response.utxos.len() < 1000 {
+            println!("Fetched less than limit, stopping.");
+            break;
+        }
+
+        if let Some(last_key) = response.last_key {
+            save_last_key(&conn, &last_key)?;
+            url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
+        } else {
+            println!("No last_key provided, stopping.");
+            break;
         }
     }
 
-    info!("Total UTXOs saved: {}", total_saved_utxos);
+    println!("Total UTXOs saved: {}", total_saved_utxos);
 
     Ok(())
 }
