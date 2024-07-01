@@ -12,7 +12,7 @@ struct Utxo {
     txid: String,
     vout: i64,
     value: i64,
-    scriptPubKeyHex: String,
+    scriptPubKey: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,8 +30,8 @@ fn save_utxos(conn: &Connection, utxos: &[Utxo]) -> Result<usize> {
     let mut count = 0;
     for utxo in utxos {
         let result = conn.execute(
-            "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value, scriptPubKeyHex) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value, utxo.scriptPubKeyHex],
+            "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value, scriptPubKey) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value, utxo.scriptPubKey],
         );
 
         match result {
@@ -83,7 +83,7 @@ fn main() -> Result<()> {
             txid TEXT,
             vout INTEGER,
             value INTEGER,
-            scriptPubKeyHex TEXT,
+            scriptPubKey TEXT,
             UNIQUE(txid, vout)
         )",
         [],
