@@ -1,9 +1,10 @@
-use reqwest::blocking::Client;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use clickhouse::{Client as CHClient, Row};
 use std::time::Duration;
 use log::{info, error};
 use thiserror::Error;
+use tokio::time::sleep;
 
 #[derive(Debug, Serialize, Deserialize, Row)]
 struct Utxo {
@@ -37,8 +38,8 @@ enum AppError {
     Other(String),
 }
 
-fn fetch_utxos(client: &Client, url: &str) -> Result<ApiResponse, AppError> {
-    let response = client.get(url).send()?.json::<ApiResponse>()?;
+async fn fetch_utxos(client: &Client, url: &str) -> Result<ApiResponse, AppError> {
+    let response = client.get(url).send().await?.json::<ApiResponse>().await?;
     Ok(response)
 }
 
@@ -111,7 +112,7 @@ async fn main() -> Result<(), AppError> {
 
     loop {
         println!("Fetching UTXOs from URL: {}", url);
-        match fetch_utxos(&client, &url) {
+        match fetch_utxos(&client, &url).await {
             Ok(response) => {
                 println!("Fetched {} UTXOs", response.utxos.len());
                 save_utxos(&ch_client, &response.utxos).await?;
@@ -139,7 +140,7 @@ async fn main() -> Result<(), AppError> {
                 if retry_count >= MAX_RETRIES {
                     return Err(AppError::Other("Max retries reached".to_string()));
                 }
-                std::thread::sleep(Duration::from_secs(30));
+                 sleep(Duration::from_secs(30)).await;
             }
         }
     }
