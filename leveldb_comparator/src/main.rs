@@ -101,9 +101,9 @@ fn main() -> Result<()> {
         [],
     )?;
 
-    let mut url = "http://localhost:8080/proxy/all_utxos?limit=100".to_string();
+    let mut url = "http://localhost:8081/proxy/all_utxos?limit=1000".to_string();
     if let Some(last_key) = get_last_key(&conn)? {
-        url = format!("http://localhost:8080/proxy/all_utxos?limit=100&startkey={}", last_key);
+        url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
     }
 
     let mut total_saved_utxos = match get_total_saved_utxos(&conn) {
@@ -127,14 +127,14 @@ fn main() -> Result<()> {
         total_saved_utxos += saved_count as i64;
         println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
 
-        if response.utxos.len() < 100 {
+        if response.utxos.len() < 1000 {
             println!("Fetched less than limit, stopping.");
             break;
         }
 
         if let Some(last_key) = response.last_key {
             save_last_key(&conn, &last_key)?;
-            url = format!("http://localhost:8080/proxy/all_utxos?limit=100&startkey={}", last_key);
+            url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
         } else {
             println!("No last_key provided, stopping.");
             break;
