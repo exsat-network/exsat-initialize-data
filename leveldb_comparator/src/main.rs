@@ -7,7 +7,8 @@ use std::time::Duration;
 #[derive(Debug, Serialize, Deserialize)]
 struct Utxo {
     height: i64,
-    address: String,
+    #[serde(default)]
+    address: Option<String>,
     txid: String,
     vout: i64,
     value: i64,
