@@ -68,6 +68,31 @@ fn get_total_saved_utxos(conn: &Connection) -> Result<i64> {
     Ok(total_saved_utxos)
 }
 
+fn copy_data(src_conn: &Connection, dest_conn: &mut Connection) -> Result<()> {
+    let mut src_stmt = src_conn.prepare("SELECT height, address, txid, vout, value, scriptPubKey FROM utxos")?;
+    let utxo_iter = src_stmt.query_map([], |row| {
+        Ok(Utxo {
+            height: row.get(0)?,
+            address: row.get(1)?,
+            txid: row.get(2)?,
+            vout: row.get(3)?,
+            value: row.get(4)?,
+            scriptPubKey: row.get(5)?,
+        })
+    })?;
+
+    let tx = dest_conn.transaction()?;
+    for utxo in utxo_iter {
+        let utxo = utxo?;
+        tx.execute(
+            "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value, scriptPubKey) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value, utxo.scriptPubKey],
+        )?;
+    }
+    tx.commit()?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let client = Client::builder()
         .timeout(Duration::from_secs(10))
@@ -150,11 +175,9 @@ fn main() -> Result<()> {
     }
 
     // Export the in-memory database to a file
-    let disk_conn = Connection::open(db_path)?;
-    conn.backup(rusqlite::DatabaseName::Main, &disk_conn, Some(|progress| {
-        println!("Backup progress: {} pages remaining", progress.pagecount - progress.remaining);
-    }))?;
-    
+    let mut disk_conn = Connection::open(db_path)?;
+    copy_data(&conn, &mut disk_conn)?;
+
     println!("Total UTXOs saved: {}", total_saved_utxos);
 
     Ok(())
