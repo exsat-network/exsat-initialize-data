@@ -120,8 +120,8 @@ fn main() -> Result<()> {
         println!("Fetching UTXOs from URL: {}", url);
         let response = fetch_utxos(&client, &url);
 
-        if response.is_err() {
-            println!("Request failed: {}. Retrying...", response.unwrap_err());
+        if let Err(err) = response {
+            println!("Request failed: {}. Retrying...", err);
             std::thread::sleep(Duration::from_secs(30));
             continue;
         }
