@@ -1,10 +1,10 @@
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, Result, Transaction};
 use rusqlite::OptionalExtension;
 use std::time::Duration;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Utxo {
     height: i64,
     #[serde(default)]
@@ -26,10 +26,10 @@ fn fetch_utxos(client: &Client, url: &str) -> Result<ApiResponse, reqwest::Error
     Ok(response)
 }
 
-fn save_utxos(conn: &Connection, utxos: &[Utxo]) -> Result<usize> {
+fn save_utxos(tx: &Transaction, utxos: &[Utxo]) -> Result<usize> {
     let mut count = 0;
     for utxo in utxos {
-        let result = conn.execute(
+        let result = tx.execute(
             "INSERT OR IGNORE INTO utxos (height, address, txid, vout, value, scriptPubKey) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![utxo.height, utxo.address, utxo.txid, utxo.vout, utxo.value, utxo.scriptPubKey],
         );
@@ -64,7 +64,7 @@ fn get_last_key(conn: &Connection) -> Result<Option<String>> {
 
 fn get_total_saved_utxos(conn: &Connection) -> Result<i64> {
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM utxos")?;
-    let total_saved_utxos: i64 = stmt.query_row([], |row| row.get(0)).optional()?.unwrap_or(0);
+    let total_saved_utxos: i64 = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
     Ok(total_saved_utxos)
 }
 
@@ -75,7 +75,9 @@ fn main() -> Result<()> {
         .expect("Failed to build HTTP client");
 
     let db_path = "/mnt3/utxos_sqlite/utxos.db";
-    let conn = Connection::open(db_path)?;
+    let mut conn = Connection::open(db_path)?;
+    conn.execute("PRAGMA synchronous = OFF", [])?;
+    conn.execute("PRAGMA journal_mode = WAL", [])?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS utxos (
             height INTEGER,
@@ -96,7 +98,6 @@ fn main() -> Result<()> {
         [],
     )?;
 
-    // 添加索引
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_utxos_height_txid_vout ON utxos (height, txid, vout)",
         [],
@@ -112,6 +113,9 @@ fn main() -> Result<()> {
         Err(_) => 0,
     };
 
+    let batch_size = 10_000;
+    let mut utxo_buffer: Vec<Utxo> = Vec::with_capacity(batch_size);
+
     loop {
         println!("Fetching UTXOs from URL: {}", url);
         let response = fetch_utxos(&client, &url);
@@ -124,9 +128,16 @@ fn main() -> Result<()> {
 
         let response = response.unwrap();
         println!("Fetched {} UTXOs", response.utxos.len());
-        let saved_count = save_utxos(&conn, &response.utxos)?;
-        total_saved_utxos += saved_count as i64;
-        println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
+        utxo_buffer.extend(response.utxos.clone());
+
+        if utxo_buffer.len() >= batch_size {
+            let tx = conn.transaction()?;
+            let saved_count = save_utxos(&tx, &utxo_buffer)?;
+            tx.commit()?;
+            total_saved_utxos += saved_count as i64;
+            println!("Saved {} UTXOs in this batch, total UTXOs saved: {}", saved_count, total_saved_utxos);
+            utxo_buffer.clear();
+        }
 
         if response.utxos.len() < 1000 {
             println!("Fetched less than limit, stopping.");
@@ -140,6 +151,15 @@ fn main() -> Result<()> {
             println!("No last_key provided, stopping.");
             break;
         }
+    }
+
+    // Save any remaining UTXOs
+    if !utxo_buffer.is_empty() {
+        let tx = conn.transaction()?;
+        let saved_count = save_utxos(&tx, &utxo_buffer)?;
+        tx.commit()?;
+        total_saved_utxos += saved_count as i64;
+        println!("Saved {} remaining UTXOs, total UTXOs saved: {}", saved_count, total_saved_utxos);
     }
 
     println!("Total UTXOs saved: {}", total_saved_utxos);
