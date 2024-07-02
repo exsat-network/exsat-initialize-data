@@ -12,8 +12,12 @@
     <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
     <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
 
-    <!-- Ensure mark_cache_size is defined -->
     <mark_cache_size>5368709120</mark_cache_size> <!-- 5GB -->
+
+    <listen_host>0.0.0.0</listen_host>
+
+    <tcp_port>9000</tcp_port>
+    <http_port>8123</http_port>
 
     <profiles>
         <default>
