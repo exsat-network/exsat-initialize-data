@@ -21,6 +21,6 @@ services:
           memory: 32G
         reservations:
           memory: 30G
-    memswap_limit: 10G
+    memswap_limit: 40G
 volumes:
   clickhouse_data:
