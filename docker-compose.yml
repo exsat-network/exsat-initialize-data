@@ -9,8 +9,8 @@ services:
       - "9000:9000"
     volumes:
       - /mnt3/clickhouse:/var/lib/clickhouse
-      - ./clickhouse_config.xml:/etc/clickhouse-server/config.xml
-      - ./clickhouse_users.xml:/etc/clickhouse-server/users.xml
+      - ./clickhouse/clickhouse_config.xml:/etc/clickhouse-server/config.xml
+      - ./clickhouse/clickhouse_users.xml:/etc/clickhouse-server/users.xml
     environment:
       - MAX_MEMORY_USAGE=20GB
       - MAX_MEMORY_USAGE_FOR_USER=20GB
