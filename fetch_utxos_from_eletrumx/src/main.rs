@@ -97,8 +97,7 @@ async fn main() -> Result<(), AppError> {
         .build()
         .expect("Failed to build HTTP client");
 
-    let ch_client = CHClient::default().with_url("http://localhost:8123").with_user("default")
-    .with_password("exsat");;
+    let ch_client = CHClient::default().with_url("http://localhost:8123").with_user("default");
 
     setup_database(&ch_client).await?;
 

@@ -1,9 +1,8 @@
 <yandex>
     <users>
         <default>
-            <password>exsat</password>
             <networks>
-                <ip>::/0</ip>
+                <ip>::/0</ip> <!-- Allow access from all IP addresses -->
             </networks>
             <profile>default</profile>
             <quota>default</quota>
