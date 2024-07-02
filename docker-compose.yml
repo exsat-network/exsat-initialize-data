@@ -12,6 +12,11 @@ services:
       - ${PWD}/clickhouse/clickhouse_config.xml:/etc/clickhouse-server/config.d/config.xml
       - ${PWD}/clickhouse/clickhouse_users.xml:/etc/clickhouse-server/users.d/users.xml
       - ${PWD}/clickhouse/clickhouse_docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: "24g"
     environment:
       - MAX_MEMORY_USAGE=20000000000  # 20GB
       - MAX_MEMORY_USAGE_FOR_USER=20000000000  # 20GB
