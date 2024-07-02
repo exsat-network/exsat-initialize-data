@@ -9,7 +9,7 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 
 ## Prerequisites
 CPU >= 4
-RAM >= 32 GiB
+RAM >= 64 GiB
 Disk >= 1.5T
 
 Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
@@ -42,15 +42,6 @@ e849ee5c80eefee3061b267bc317a142  block_headers_lt_840000_sqlite.zip
 4. Move data from electrumx ot Clickhouse.
 
 ### Setup Clickhouse from docker
-0. Create swap if your RAM is not enough 
-```
-sudo fallocate -l 10G /mnt3/swapfile
-sudo chmod 600 /mnt3/swapfile
-sudo mkswap /mnt3/swapfile
-sudo swapon /mnt3/swapfile
-
-echo '/mnt3/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-```
 
 1. Change the volume mapping to your localhost disk and create some folders
 ```shell
@@ -103,7 +94,7 @@ Query id: 68ab206b-9bc8-4de9-b822-c9a89b2ca86a
 
 
 
-SET max_memory_usage = 40000000000; -- Set this to 40GB or any other appropriate value
+SET max_memory_usage = 32000000000; -- Set this to 40GB or any other appropriate value
 
 SELECT SUM(value) AS total_value
 FROM (

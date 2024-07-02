@@ -15,12 +15,5 @@ services:
     environment:
       - MAX_MEMORY_USAGE=20000000000  # 20GB
       - MAX_MEMORY_USAGE_FOR_USER=20000000000  # 20GB
-    deploy:
-      resources:
-        limits:
-          memory: 32G
-        reservations:
-          memory: 30G
-    memswap_limit: 40G
 volumes:
   clickhouse_data:
