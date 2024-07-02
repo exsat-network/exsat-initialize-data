@@ -8,58 +8,105 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 - **Block Header Fetcher**: Retrieves Bitcoin block headers and saves them to a CSV file.
 
 ## Prerequisites
+CPU >= 4
+RAM >= 32 GiB
+Disk >= 1.5T
 
 Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
 
-1. setup btc fullnode by [script](./setup-bitcoin-fullnode.sh).
+1. Setup btc fullnode by [script](./setup-bitcoin-fullnode.sh).
 
 
-2. setup rust env by [script](./setup-rust.sh).
+2. Setup rust env by [script](./setup-rust.sh).
 
 ## #1 Block Headers Data < 840000
 
+1. Run the fullnode and make it sync.
+2. Enter the `fetch_bitcoin_blockheader`.
+3. `cargo run`
+
+4. Finally you'll get the result.
+
 > [Sqlite Database in S3](https://s3.amazonaws.com/exsat.initialize.data/block_headers_lt_840000_sqlite.zip)
 
-
-1. run the fullnode and make it sync.
-2. enter the `fetch_bitcoin_blockheader`.
-3. `cargo run`
+```shell
+md5sum block_headers_lt_840000_sqlite.zip
+e849ee5c80eefee3061b267bc317a142  block_headers_lt_840000_sqlite.zip
+```
 
 ## #2 UTXOs Data < 840000
 
-1. run the fullnode and make it sync.
+1. Run the fullnode and make it sync.
 2. git clone https://github.com/exsat-network/electrumx.git
-3. run the electrumx manually or by Docker file.
-4. fetch data from electrumx.
+3. Run the electrumx manually or by Docker file. Please make sure you set the endblock to 839999.
+4. Move data from electrumx ot Clickhouse.
 
 ### Setup Clickhouse from docker
 1. Change the volume mapping to your localhost disk and create some folders
-```
+```shell
        - /mnt3/clickhouse:/var/lib/clickhouse
        mkdir -p /mnt3/clickhouse/logs
        mkdir -p /mnt3/clickhouse/tmp
        mkdir -p /mnt3/clickhouse/user_files
        mkdir -p /mnt3/clickhouse/format_schemas
-
 ```
 2. Run the docker compose file
-```
+```shell
 docker-compose up -d
 ```
-3. Enter the clickhouse client 
+
+3. Run `cargo run` in the `fetch_utxos_from_eletrumx`
+4. The moving will be done in about 15hrs.
+5. Enter the clickhouse client & check the data.
+```shell
 docker exec -it  clickhouse /bin/bash
 
 clickhouse-client
+```
 
-set max_memory_usage=30000000000
-set max_memory_usage_for_user = 30000000000
-
+4. query in clickhouse
+```sql
 USE blockchain;
+
+
+
+
 
 SELECT * FROM utxos LIMIT 1;
 
-SELECT SUM(value) FROM (SELECT value FROM utxos LIMIT 1000000);
 
-SELECT  COUNT(*) AS total_unique_rows  FROM ( SELECT uniqExact(tuple(height, txid, vout)) AS total_unique_rows FROM blockchain.utxos ) AS subquery
+
+
+
+SET max_memory_usage = 20000000000; -- Set this to 20GB or any other appropriate value
+
+SELECT uniqExact((height, txid, vout)) AS total_unique_rows
+FROM blockchain.utxos; --  to count the unique rows based on a combination of height, txid, and vout. 
+
+Query id: 68ab206b-9bc8-4de9-b822-c9a89b2ca86a
+
+┌─total_unique_rows─┐
+│         176960293 │
+└───────────────────┘
+
+
+
+
+
+SET max_memory_usage = 32000000000; -- Set this to 32GB or any other appropriate value
+SET max_server_memory_usage_to_ram_ratio = 0.95; -- Set this to 30GB or any other appropriate value
+
+
+SELECT SUM(value) AS total_value
+FROM (
+    SELECT
+        any(value) AS value
+    FROM blockchain.utxos
+    GROUP BY
+        height,
+        txid,
+        vout
+) AS unique_combinations;
+ -- query sums the value of these unique combinations.
 
 ```
