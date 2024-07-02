@@ -22,8 +22,8 @@
     <profiles>
         <default>
         <max_server_memory_usage_to_ram_ratio>0.95</max_server_memory_usage_to_ram_ratio>
-    <max_memory_usage>30000000000</max_memory_usage> <!-- 220000000000GB -->
-    <max_memory_usage_for_user>30000000000</max_memory_usage_for_user> <!-- 30GB -->
+    <max_memory_usage>60000000000</max_memory_usage> <!-- 220000000000GB -->
+    <max_memory_usage_for_user>60000000000</max_memory_usage_for_user> <!-- 30GB -->
         </default>
     </profiles>
 </yandex>

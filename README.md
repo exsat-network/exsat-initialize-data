@@ -94,7 +94,7 @@ Query id: 68ab206b-9bc8-4de9-b822-c9a89b2ca86a
 
 
 
-SET max_memory_usage = 32000000000; -- Set this to 40GB or any other appropriate value
+SET max_memory_usage = 60000000000; -- Set this to 40GB or any other appropriate value
 
 SELECT SUM(value) AS total_value
 FROM (

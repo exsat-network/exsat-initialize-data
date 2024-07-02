@@ -13,7 +13,7 @@ services:
       - ${PWD}/clickhouse/clickhouse_users.xml:/etc/clickhouse-server/users.d/users.xml
       - ${PWD}/clickhouse/clickhouse_docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml
     environment:
-      - MAX_MEMORY_USAGE=20000000000  # 20GB
-      - MAX_MEMORY_USAGE_FOR_USER=20000000000  # 20GB
+      - MAX_MEMORY_USAGE=60000000000  # 20GB
+      - MAX_MEMORY_USAGE_FOR_USER=60000000000  # 20GB
 volumes:
   clickhouse_data:
