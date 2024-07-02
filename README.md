@@ -49,9 +49,6 @@ docker-compose up -d
 3. Enter the clickhouse client 
 docker exec -it  clickhouse /bin/bash
 
-# If the users.d/default-password.xml file exists, delete it:
-rm /etc/clickhouse-server/users.d/default-password.xml
-
 clickhouse-client
 
 USE blockchain;

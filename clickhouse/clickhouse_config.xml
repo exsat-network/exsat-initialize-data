@@ -21,8 +21,8 @@
 
     <profiles>
         <default>
-            <max_memory_usage>20000000000</max_memory_usage> <!-- 20 GB -->
-            <max_memory_usage_for_all_queries>20000000000</max_memory_usage_for_all_queries> <!-- 20 GB -->
+    <max_memory_usage>20460000000</max_memory_usage> <!-- 20GB -->
+    <max_memory_usage_for_user>20460000000</max_memory_usage_for_user> <!-- 20GB -->
         </default>
     </profiles>
 </yandex>
