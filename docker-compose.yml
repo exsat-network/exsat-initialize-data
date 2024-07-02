@@ -18,7 +18,7 @@ services:
           cpus: "4"
           memory: "24g"
     environment:
-      - MAX_MEMORY_USAGE=20000000000  # 20GB
-      - MAX_MEMORY_USAGE_FOR_USER=20000000000  # 20GB
+      - MAX_MEMORY_USAGE=30000000000  # 20GB
+      - MAX_MEMORY_USAGE_FOR_USER=30000000000  # 20GB
 volumes:
   clickhouse_data:
