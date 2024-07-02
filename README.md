@@ -8,6 +8,7 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 - **Block Header Fetcher**: Retrieves Bitcoin block headers and saves them to a CSV file.
 
 ## Prerequisites
+r4.2xlarge aws
 CPU >= 4
 RAM >= 64 GiB
 Disk >= 1.5T
@@ -107,5 +108,13 @@ FROM (
         vout
 ) AS unique_combinations;
  -- query sums the value of these unique combinations.
+
+Query id: 67b76c6d-0b0d-4b39-b048-447618f9b30f
+
+┌──────total_value─┐
+│ 1968729299271483 │
+└──────────────────┘
+
+1 rows in set. Elapsed: 78.227 sec. Processed 177.14 million rows, 17.18 GB (2.26 million rows/s., 219.65 MB/s.)
 
 ```
