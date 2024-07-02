@@ -12,6 +12,9 @@
     <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
     <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
 
+    <!-- Ensure mark_cache_size is defined -->
+    <mark_cache_size>5368709120</mark_cache_size> <!-- 5GB -->
+
     <profiles>
         <default>
             <max_memory_usage>20000000000</max_memory_usage> <!-- 20 GB -->
