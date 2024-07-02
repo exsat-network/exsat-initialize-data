@@ -1,12 +1,13 @@
 <yandex>
     <users>
         <default>
-            <profile>default</profile>
-            <quota>default</quota>
+            <password>exsat</password>
             <networks>
                 <ip>::/0</ip>
             </networks>
-            <max_memory_usage>20000000000</max_memory_usage> <!-- 20 GB -->
+            <profile>default</profile>
+            <quota>default</quota>
+            <access_management>1</access_management>
         </default>
     </users>
 </yandex>

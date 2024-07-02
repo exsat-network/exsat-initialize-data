@@ -4,24 +4,35 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 
 ## Overview
 
-- **Comparator**: Compares two RocksDB directories and calculates the MD5 checksums of their files.
+- **Fetch UTXOs From ElectrumX**: Fetch UTXOs from ElectrumX and save in Clickhouse.
 - **Block Header Fetcher**: Retrieves Bitcoin block headers and saves them to a CSV file.
 
 ## Prerequisites
 
 Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
-```
+1. setup btc fullnode by [script](./setup-bitcoin-fullnode.sh).
 
-## Block Headers Data < 840000
+
+2. setup rust env by [script](./setup-rust.sh).
+
+## #1 Block Headers Data < 840000
 
 > [Sqlite Database in S3](https://s3.amazonaws.com/exsat.initialize.data/block_headers_lt_840000_sqlite.zip)
 
 
-## Setup Clickhouse from docker
+1. run the fullnode and make it sync.
+2. enter the `fetch_bitcoin_blockheader`.
+3. `cargo run`
+
+## #2 UTXOs Data < 840000
+
+1. run the fullnode and make it sync.
+2. git clone https://github.com/exsat-network/electrumx.git
+3. run the electrumx manually or by Docker file.
+4. fetch data from electrumx.
+
+### Setup Clickhouse from docker
 1. Change the volume mapping to your localhost disk and create some folders
 ```
        - /mnt3/clickhouse:/var/lib/clickhouse
