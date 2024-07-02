@@ -51,6 +51,9 @@ docker exec -it  clickhouse /bin/bash
 
 clickhouse-client
 
+set max_memory_usage=30000000000
+set max_memory_usage_for_user = 30000000000
+
 USE blockchain;
 
 SELECT * FROM utxos LIMIT 1;

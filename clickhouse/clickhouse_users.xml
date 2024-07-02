@@ -1,7 +1,7 @@
 <yandex>
     <users>
         <default>
-         <max_memory_usage>30000000000</max_memory_usage> <!-- 220000000000GB -->
+         <max_memory_usage_for_user>30000000000</max_memory_usage_for_user> <!-- 220000000000GB -->
             <networks>
                 <ip>::/0</ip> <!-- Allow access from all IP addresses -->
             </networks>
