@@ -13,15 +13,14 @@ services:
       - ${PWD}/clickhouse/clickhouse_users.xml:/etc/clickhouse-server/users.d/users.xml
       - ${PWD}/clickhouse/clickhouse_docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml
     environment:
-      - MAX_MEMORY_USAGE=40000000000  # 40GB
-      - MAX_MEMORY_USAGE_FOR_USER=40000000000  # 40GB
+      - MAX_MEMORY_USAGE=20000000000  # 20GB
+      - MAX_MEMORY_USAGE_FOR_USER=20000000000  # 20GB
     deploy:
       resources:
         limits:
-          memory: 40G
-    command: >
-      bash -c "sysctl -w vm.swappiness=10 &&
-               clickhouse-server --config-file=/etc/clickhouse-server/config.xml"
+          memory: 32G
+        reservations:
+          memory: 30G
+    memswap_limit: 10G
 volumes:
   clickhouse_data:
-    driver: local
