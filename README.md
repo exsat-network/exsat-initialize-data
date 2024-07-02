@@ -42,6 +42,16 @@ e849ee5c80eefee3061b267bc317a142  block_headers_lt_840000_sqlite.zip
 4. Move data from electrumx ot Clickhouse.
 
 ### Setup Clickhouse from docker
+0. Create swap if your RAM is not enough 
+```
+sudo fallocate -l 10G /mnt3/swapfile
+sudo chmod 600 /mnt3/swapfile
+sudo mkswap /mnt3/swapfile
+sudo swapon /mnt3/swapfile
+
+echo '/mnt3/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
 1. Change the volume mapping to your localhost disk and create some folders
 ```shell
        - /mnt3/clickhouse:/var/lib/clickhouse
@@ -50,14 +60,14 @@ e849ee5c80eefee3061b267bc317a142  block_headers_lt_840000_sqlite.zip
        mkdir -p /mnt3/clickhouse/user_files
        mkdir -p /mnt3/clickhouse/format_schemas
 ```
-2. Run the docker compose file
+1. Run the docker compose file
 ```shell
 docker-compose up -d
 ```
 
-3. Run `cargo run` in the `fetch_utxos_from_eletrumx`
-4. The moving will be done in about 15hrs.
-5. Enter the clickhouse client & check the data.
+1. Run `cargo run` in the `fetch_utxos_from_eletrumx`
+2. The moving will be done in about 15hrs.
+3. Enter the clickhouse client & check the data.
 ```shell
 docker exec -it  clickhouse /bin/bash
 
@@ -93,9 +103,7 @@ Query id: 68ab206b-9bc8-4de9-b822-c9a89b2ca86a
 
 
 
-SET max_memory_usage = 32000000000; -- Set this to 32GB or any other appropriate value
-SET max_server_memory_usage_to_ram_ratio = 0.95; -- Set this to 30GB or any other appropriate value
-
+SET max_memory_usage = 40000000000; -- Set this to 40GB or any other appropriate value
 
 SELECT SUM(value) AS total_value
 FROM (
