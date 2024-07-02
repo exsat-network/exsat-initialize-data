@@ -22,9 +22,14 @@ source $HOME/.cargo/env
 
 
 ## Setup Clickhouse from docker
-1. Change the volume mapping to your localhost disk 
+1. Change the volume mapping to your localhost disk and create some folders
 ```
        - /mnt3/clickhouse:/var/lib/clickhouse
+       mkdir -p /mnt3/clickhouse/logs
+       mkdir -p /mnt3/clickhouse/tmp
+       mkdir -p /mnt3/clickhouse/user_files
+       mkdir -p /mnt3/clickhouse/format_schemas
+
 ```
 2. Run the docker compose file
 ```

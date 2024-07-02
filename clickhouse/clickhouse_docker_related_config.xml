@@ -1,0 +1,4 @@
+<yandex>
+    <!-- Docker related configurations -->
+    <default_database>default</default_database>
+</yandex>

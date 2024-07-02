@@ -11,6 +11,7 @@ services:
       - /mnt3/clickhouse:/var/lib/clickhouse
       - ./clickhouse/clickhouse_config.xml:/etc/clickhouse-server/config.xml
       - ./clickhouse/clickhouse_users.xml:/etc/clickhouse-server/users.xml
+      - ./clickhouse/clickhouse_docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml
     environment:
       - MAX_MEMORY_USAGE=20GB
       - MAX_MEMORY_USAGE_FOR_USER=20GB
