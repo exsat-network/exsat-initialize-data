@@ -102,6 +102,7 @@ FROM (
     SELECT
         any(value) AS value
     FROM blockchain.utxos
+    WHERE address IS NOT NULL
     GROUP BY
         height,
         txid,
@@ -115,6 +116,19 @@ Query id: 67b76c6d-0b0d-4b39-b048-447618f9b30f
 │ 1968729299271483 │
 └──────────────────┘
 
-1 rows in set. Elapsed: 78.227 sec. Processed 177.14 million rows, 17.18 GB (2.26 million rows/s., 219.65 MB/s.)
+
+
+
+-- create and import addresses & balance data from csv(parse from https://github.com/gcarq/rusty-blockparser)
+CREATE TABLE IF NOT EXISTS blockchain.addresses (
+    address Nullable(String),
+    balance UInt64
+) ENGINE = MergeTree() ORDER BY address
+
+
+exit
+
+clickhouse-client -h localhost --query="INSERT INTO blockchain.addresses FORMAT CSVWithNames" --format_csv_delimiter=";" < /var/lib/clickhouse/balances-0-839999.csv
+
 
 ```
