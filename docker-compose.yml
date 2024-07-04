@@ -9,6 +9,12 @@ services:
       - "9000:9000"
     volumes:
       - /mnt3/clickhouse:/var/lib/clickhouse
-
+      - ${PWD}/clickhouse/clickhouse_config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ${PWD}/clickhouse/clickhouse_users.xml:/etc/clickhouse-server/users.d/users.xml
+      - ${PWD}/clickhouse/clickhouse_docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml
+      - /mnt3/balances-0-839999.csv:/var/lib/clickhouse/balances-0-839999.csv
+    environment:
+      - MAX_MEMORY_USAGE=60000000000  # 20GB
+      - MAX_MEMORY_USAGE_FOR_USER=60000000000  # 20GB
 volumes:
   clickhouse_data:
