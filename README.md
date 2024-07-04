@@ -131,4 +131,52 @@ exit
 clickhouse-client -h localhost --query="INSERT INTO blockchain.addresses FORMAT CSVWithNames" --format_csv_delimiter=";" < /var/lib/clickhouse/balances-0-839999.csv
 
 
+--query the count of rows where the address field is NULL and calculate the average length of the scriptPubKey strings in ClickHouse
+
+SELECT COUNT(*) AS null_address_count
+FROM (
+    SELECT height, txid, vout
+    FROM blockchain.utxos
+    WHERE address IS NULL
+    GROUP BY height, txid, vout
+)
+
+
+┌─null_address_count─┐
+│            1459480 │
+└────────────────────┘
+
+SET max_memory_usage = 60000000000; 
+
+SELECT AVG(length(scriptPubKey)) AS avg_scriptPubKey_length
+FROM (
+    SELECT height, txid, vout, scriptPubKey
+    FROM blockchain.utxos
+    GROUP BY height, txid, vout, scriptPubKey
+)
+
+┌─avg_scriptPubKey_length─┐
+│       53.46481580475231 │
+└─────────────────────────┘
+
+SELECT MAX(length(scriptPubKey)) AS max_scriptPubKey_length
+FROM
+(
+    SELECT
+        height,
+        txid,
+        vout,
+        scriptPubKey
+    FROM blockchain.utxos
+    GROUP BY
+        height,
+        txid,
+        vout,
+        scriptPubKey
+)
+
+┌─max_scriptPubKey_length─┐
+│                    8052 │
+└─────────────────────────┘
+
 ```
