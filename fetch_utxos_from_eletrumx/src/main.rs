@@ -81,7 +81,9 @@ async fn setup_database(ch_client: &CHClient) -> Result<(), AppError> {
             value Int64,
             scriptPubKey String
         ) ENGINE = MergeTree()
-        ORDER BY (height, txid, vout)").execute().await?;
+        ORDER BY (height, txid, vout)
+        PRIMARY KEY (height, txid, vout);
+        ").execute().await?;
     ch_client.query("CREATE TABLE IF NOT EXISTS blockchain.progress (
             id Int32,
             last_key String
