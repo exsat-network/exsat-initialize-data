@@ -2,6 +2,7 @@ import os
 import time
 import requests
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuration for Bitcoin Core RPC
 RPC_USER = 'exSat'
@@ -12,6 +13,7 @@ RPC_URL = f'http://{RPC_USER}:{RPC_PASSWORD}@{RPC_HOST}:{RPC_PORT}'
 
 CACHE_FILE = "block_height_cache.txt"
 HEADERS = {'content-type': 'application/json'}
+MAX_WORKERS = 10  # Number of concurrent threads
 
 def rpc_request(method, params=None):
     payload = json.dumps({
@@ -35,17 +37,20 @@ def get_block(block_hash):
 def get_raw_transaction(txid):
     return rpc_request('getrawtransaction', [txid, True])
 
+def calculate_miner_fee_for_tx(tx):
+    input_sum = sum(get_raw_transaction(vin['txid'])['vout'][vin['vout']]['value'] for vin in tx['vin'])
+    output_sum = sum(vout['value'] for vout in tx['vout'])
+    fee = input_sum - output_sum
+    return fee
+
 def calculate_miner_fee(block_data):
     total_fee = 0
+    transactions = [tx for tx in block_data['tx'] if 'coinbase' not in tx['vin'][0]]
 
-    for tx in block_data['tx']:
-        if 'coinbase' in tx['vin'][0]:  # Skip coinbase transactions
-            continue
-
-        input_sum = sum(get_raw_transaction(vin['txid'])['vout'][vin['vout']]['value'] for vin in tx['vin'])
-        output_sum = sum(vout['value'] for vout in tx['vout'])
-        fee = input_sum - output_sum
-        total_fee += fee
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = [executor.submit(calculate_miner_fee_for_tx, tx) for tx in transactions]
+        for future in as_completed(futures):
+            total_fee += future.result()
 
     return total_fee
 
@@ -65,7 +70,6 @@ def main():
     start_block = read_cache()
     end_block = 839999
     total_fee_all_blocks = 0
-    request_interval = 1  # Time in seconds between requests to avoid rate limiting
 
     for block_height in range(start_block, end_block + 1):
         try:
@@ -78,8 +82,6 @@ def main():
             # Write the current block height to cache
             write_cache(block_height)
 
-            # Pause to respect rate limits
-            time.sleep(request_interval)
         except Exception as e:
             print(f"Error fetching data for block {block_height}: {e}")
             break
