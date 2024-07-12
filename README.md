@@ -11,6 +11,7 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 r4.2xlarge aws
 CPU >= 4
 RAM >= 64 GiB
+SWAP >= 64 GiB
 Disk >= 1.5T
 
 Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
@@ -28,14 +29,14 @@ Before running the programs, ensure you have Rust installed on your system. You 
 
 4. Finally you'll get the result.
 
-> [Sqlite Database in S3](https://s3.amazonaws.com/exsat.initialize.data/block_headers_lt_840000_sqlite.zip)
+> [Sqlite Database in S3](https://s3.amazonaws.com/exsat.initialize.data/block_headers_lt_840000.csv.zip)
 
 ```shell
 md5sum block_headers_lt_840000_sqlite.zip
 e849ee5c80eefee3061b267bc317a142  block_headers_lt_840000_sqlite.zip
 ```
 
-## #2 UTXOs Data < 840000
+## #2 UTXOs Data < 840000 (Electrumx)
 
 1. Run the fullnode and make it sync.
 2. git clone https://github.com/exsat-network/electrumx.git
@@ -88,7 +89,7 @@ FROM blockchain.utxos; --  to count the unique rows based on a combination of he
 Query id: 68ab206b-9bc8-4de9-b822-c9a89b2ca86a
 
 ┌─total_unique_rows─┐
-│         176960293 │
+│         176944794 │
 └───────────────────┘
 
 
@@ -113,7 +114,7 @@ FROM (
 Query id: 67b76c6d-0b0d-4b39-b048-447618f9b30f
 
 ┌──────total_value─┐
-│ 1968729299271483 │
+│ 1968728049271483 │
 └──────────────────┘
 
 
@@ -179,4 +180,53 @@ FROM
 │                    8052 │
 └─────────────────────────┘
 
+
+## dedup
+CREATE TABLE IF NOT EXISTS blockchain.deduped_utxos
+(
+    id UInt64,
+    height Int64,
+    address Nullable(String),
+    txid String,
+    vout Int64,
+    value Int64,
+    scriptPubKey String
+) ENGINE = MergeTree()
+ORDER BY id;
+
+INSERT INTO blockchain.deduped_utxos
+SELECT 
+    rowNumberInAllBlocks() as id, 
+    height, 
+    address, 
+    txid, 
+    vout, 
+    value, 
+    scriptPubKey
+FROM 
+(
+    SELECT DISTINCT height, txid, vout, address, value, scriptPubKey
+    FROM blockchain.utxos
+)
+
+clickhouse-client --query="SELECT * FROM blockchain.deduped_utxos FORMAT CSVWithNames" --format_csv_delimiter=";"  > /var/lib/clickhouse/utxos.csv
+```
+
+## #3 UTXOs Data < 840000 ([bitcoin-utxo-dump](https://github.com/in3rsha/bitcoin-utxo-dump))
+1. Run the fullnode and make it sync to 83999.
+2. git clone https://github.com/in3rsha/bitcoin-utxo-dump
+3. Run the `bitcoin-utxo-dump`.
+
+```
+Total UTXOs: 176944794
+Total BTC:   19687280.49271483
+Script Types:
+ p2pkh        51294486
+ p2sh         21198713
+ p2ms         1692228
+ p2wpkh       57255394
+ p2wsh        1536300
+ p2tr         43901619
+ non-standard 20665
+ p2pk         45389
 ```

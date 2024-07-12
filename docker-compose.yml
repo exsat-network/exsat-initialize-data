@@ -9,6 +9,7 @@ services:
       - "9000:9000"
     volumes:
       - /mnt3/clickhouse:/var/lib/clickhouse
+      - /mnt3/clickhouse/export:/tmp/export
       - ${PWD}/clickhouse/clickhouse_config.xml:/etc/clickhouse-server/config.d/config.xml
       - ${PWD}/clickhouse/clickhouse_users.xml:/etc/clickhouse-server/users.d/users.xml
       - ${PWD}/clickhouse/clickhouse_docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml
