@@ -26,14 +26,25 @@ Before running the programs, ensure you have Rust installed on your system. You 
 1. Run the fullnode and make it sync.
 2. Enter the `fetch_bitcoin_blockheader`.
 3. `cargo run`
+4. Finally you'll get the result `block_headers.db`.
+5. convert to csv 
 
-4. Finally you'll get the result.
+```
+sqlite3 ./block_headers.db
+sqlite> .headers on
+sqlite> .mode csv
+sqlite> .output block_headers.csv
+sqlite> select * from `block_headers`;
+sqlite> .quit
 
-> [Sqlite Database in S3](https://s3.amazonaws.com/exsat.initialize.data/block_headers_lt_840000.csv.zip)
+zip block_headers_lt_840000.csv.zip ./block_headers.csv
+```
+
+> [block header data in S3](https://s3.amazonaws.com/exsat.initialize.data/block_headers_lt_840000.csv.zip)
 
 ```shell
-md5sum block_headers_lt_840000_sqlite.zip
-e849ee5c80eefee3061b267bc317a142  block_headers_lt_840000_sqlite.zip
+sha256sum block_headers_lt_840000.csv.zip
+601c86ff3f50783d00d5a93c78bdb2d96ef1e0a5327a4dcfbea9209ec54a1d84  block_headers_lt_840000.csv.zip
 ```
 
 ## #2 UTXOs Data < 840000 (Electrumx)
@@ -72,14 +83,7 @@ clickhouse-client
 USE blockchain;
 
 
-
-
-
 SELECT * FROM utxos LIMIT 1;
-
-
-
-
 
 SET max_memory_usage = 20000000000; -- Set this to 20GB or any other appropriate value
 
@@ -91,9 +95,6 @@ Query id: 68ab206b-9bc8-4de9-b822-c9a89b2ca86a
 ┌─total_unique_rows─┐
 │         176944794 │
 └───────────────────┘
-
-
-
 
 
 SET max_memory_usage = 60000000000; -- Set this to 40GB or any other appropriate value
@@ -126,62 +127,11 @@ CREATE TABLE IF NOT EXISTS blockchain.addresses (
     balance UInt64
 ) ENGINE = MergeTree() ORDER BY address
 
-
-exit
-
 clickhouse-client -h localhost --query="INSERT INTO blockchain.addresses FORMAT CSVWithNames" --format_csv_delimiter=";" < /var/lib/clickhouse/balances-0-839999.csv
 
 
---query the count of rows where the address field is NULL and calculate the average length of the scriptPubKey strings in ClickHouse
-
-SELECT COUNT(*) AS null_address_count
-FROM (
-    SELECT height, txid, vout
-    FROM blockchain.utxos
-    WHERE address IS NULL
-    GROUP BY height, txid, vout
-)
-
-
-┌─null_address_count─┐
-│            1459480 │
-└────────────────────┘
-
-SET max_memory_usage = 60000000000; 
-
-SELECT AVG(length(scriptPubKey)) AS avg_scriptPubKey_length
-FROM (
-    SELECT height, txid, vout, scriptPubKey
-    FROM blockchain.utxos
-    GROUP BY height, txid, vout, scriptPubKey
-)
-
-┌─avg_scriptPubKey_length─┐
-│       53.46481580475231 │
-└─────────────────────────┘
-
-SELECT MAX(length(scriptPubKey)) AS max_scriptPubKey_length
-FROM
-(
-    SELECT
-        height,
-        txid,
-        vout,
-        scriptPubKey
-    FROM blockchain.utxos
-    GROUP BY
-        height,
-        txid,
-        vout,
-        scriptPubKey
-)
-
-┌─max_scriptPubKey_length─┐
-│                    8052 │
-└─────────────────────────┘
-
-
-## dedup
+-- dedup
+SET max_memory_usage = 60000000000;
 CREATE TABLE IF NOT EXISTS blockchain.deduped_utxos
 (
     id UInt64,
@@ -209,12 +159,15 @@ FROM
     FROM blockchain.utxos
 )
 
-clickhouse-client --query="SELECT * FROM blockchain.deduped_utxos FORMAT CSVWithNames" --format_csv_delimiter=";"  > /var/lib/clickhouse/utxos.csv
+clickhouse-client --query="INSERT INTO blockchain.addresses FORMAT CSVWithNames" --format_csv_delimiter=";" < ./balances-0-839999.csv
+
+-- Ctrl + D
+
 ```
 
-## #3 UTXOs Data < 840000 ([bitcoin-utxo-dump](https://github.com/in3rsha/bitcoin-utxo-dump))
-1. Run the fullnode and make it sync to 83999.
-2. git clone https://github.com/in3rsha/bitcoin-utxo-dump
+## #3 UTXOs Data < 840000 ([bitcoin-utxo-dump](https://github.com/exsat-network/bitcoin-utxo-dump))
+1. Run the [fullnode](https://github.com/exsat-network/bitcoin) and make it sync to 83999.
+2. git clone https://github.com/exsat-network/bitcoin-utxo-dump
 3. Run the `bitcoin-utxo-dump`.
 
 ```

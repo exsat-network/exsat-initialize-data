@@ -1,10 +1,10 @@
 mod block_header;
-mod spv_verification;
+mod verification;
 mod utils;
 mod types;
 
 use block_header::index_block_headers;
-use spv_verification::perform_spv_verification;
+use verification::perform_verification;
 use utils::create_db_connection;
 use std::io;
 
@@ -16,7 +16,7 @@ fn main() {
 
     println!("Select an option:");
     println!("1. Index block headers");
-    println!("2. Perform SPV verification");
+    println!("2. Perform verification");
     
     let mut choice = String::new();
     io::stdin().read_line(&mut choice).expect("Failed to read line");
@@ -27,7 +27,7 @@ fn main() {
             index_block_headers(&conn, MAX_BLOCK_HEIGHT).expect("Failed to index block headers");
         },
         2 => {
-            perform_spv_verification(&conn);
+            perform_verification(&conn);
         },
         _ => println!("Invalid choice"),
     }
