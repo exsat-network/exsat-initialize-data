@@ -54,8 +54,8 @@ pub fn get_block_header_by_height(conn: &Connection, height: u64) -> RusqliteRes
     Err(rusqlite::Error::QueryReturnedNoRows)
 }
 
-// Function to perform SPV verification
-pub fn perform_spv_verification(conn: &Connection) {
+// Function to perform verification
+pub fn perform_verification(conn: &Connection) {
     // Configure connection to the local Bitcoin RPC node
     let client = Client::new();
 
