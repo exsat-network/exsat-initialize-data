@@ -1,10 +1,10 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use clickhouse::{Client as CHClient, Row};
-use std::time::Duration;
 use log::{info, error};
 use thiserror::Error;
 use tokio::time::sleep;
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
 
 #[derive(Debug, Serialize, Deserialize, Row)]
 struct Utxo {
@@ -27,6 +27,7 @@ struct ApiResponse {
 struct LastKeyRow {
     last_key: String,
 }
+
 
 #[derive(Error, Debug)]
 enum AppError {
@@ -53,22 +54,31 @@ async fn save_utxos(ch_client: &CHClient, utxos: &[Utxo]) -> Result<(), AppError
 }
 
 async fn save_last_key(ch_client: &CHClient, last_key: &str) -> Result<(), AppError> {
-    ch_client.query("INSERT INTO blockchain.progress (id, last_key) VALUES (1, ?)")
-        .bind(last_key)
-        .execute().await?;
+let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs();
+
+    ch_client.query("
+        INSERT INTO blockchain.progress (id, timestamp, last_key)
+        VALUES (1, ?, ?)
+    ")
+    .bind(timestamp)
+    .bind(last_key)
+    .execute()
+    .await?;
     Ok(())
 }
 
 async fn get_last_key(ch_client: &CHClient) -> Result<Option<String>, AppError> {
-    let mut cursor = ch_client
-        .query("SELECT last_key FROM blockchain.progress WHERE id = 1")
+let mut cursor = ch_client
+        .query("SELECT last_key FROM blockchain.progress WHERE id = 1 ORDER BY timestamp DESC LIMIT 1")
         .fetch::<LastKeyRow>()?;
-    
-    if let Some(row) = cursor.next().await? {
-        Ok(Some(row.last_key))
-    } else {
-        Ok(None)
+
+    while let Some(row) = cursor.next().await? {
+        return Ok(Some(row.last_key));
     }
+    Ok(None)
 }
 
 async fn setup_database(ch_client: &CHClient) -> Result<(), AppError> {
@@ -76,7 +86,7 @@ async fn setup_database(ch_client: &CHClient) -> Result<(), AppError> {
     ch_client.query("CREATE TABLE IF NOT EXISTS blockchain.utxos (
             height Int64,
             address Nullable(String),
-            txid String,
+                        txid String,
             vout Int64,
             value Int64,
             scriptPubKey String
@@ -86,8 +96,11 @@ async fn setup_database(ch_client: &CHClient) -> Result<(), AppError> {
         ").execute().await?;
     ch_client.query("CREATE TABLE IF NOT EXISTS blockchain.progress (
             id Int32,
+            timestamp DateTime,
             last_key String
-        ) ENGINE = TinyLog").execute().await?;
+        ) ENGINE = MergeTree()
+        ORDER BY (id, timestamp)
+        SETTINGS index_granularity = 8192;").execute().await?;
     Ok(())
 }
 #[tokio::main]
@@ -102,10 +115,11 @@ async fn main() -> Result<(), AppError> {
     let ch_client = CHClient::default().with_url("http://localhost:8123").with_user("default");
 
     setup_database(&ch_client).await?;
+    let limit = 1000;
 
-    let mut url = "http://localhost:8081/proxy/all_utxos?limit=1000".to_string();
+    let mut url = format!("http://localhost:8080/proxy/all_utxos?limit={}",limit);
     if let Some(last_key) = get_last_key(&ch_client).await? {
-        url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
+        url = format!("http://localhost:8080/proxy/all_utxos?limit={}&startkey={}",limit, last_key);
     }
 
     let mut total_saved_utxos = 0;
@@ -123,28 +137,33 @@ async fn main() -> Result<(), AppError> {
 
                 retry_count = 0;
 
-                if response.utxos.len() < 1000 {
+                if response.utxos.len() < limit {
                     println!("Fetched less than limit, stopping.");
                     break;
                 }
 
                 if let Some(last_key) = response.last_key {
                     save_last_key(&ch_client, &last_key).await?;
-                    url = format!("http://localhost:8081/proxy/all_utxos?limit=1000&startkey={}", last_key);
+                    url = format!("http://localhost:8080/proxy/all_utxos?limit={}&startkey={}",limit, last_key);
                 } else {
                     println!("No last_key provided, stopping.");
                     break;
                 }
             }
             Err(e) => {
-                error!("Request failed: {}. Retrying...", e);
+                match e {
+                    AppError::Other(ref msg) => {
+                  error!("Request failed: {}. Retrying...", msg);                                                                        },
+               _ => error!("Request failed: {}. Retrying...",e),
+                }
                 retry_count += 1;
                 if retry_count >= MAX_RETRIES {
                     return Err(AppError::Other("Max retries reached".to_string()));
                 }
-                 sleep(Duration::from_secs(30)).await;
+                 sleep(Duration::from_secs(5)).await;
             }
         }
+//sleep(Duration::from_secs(3)).await;
     }
 
     println!("Total UTXOs saved: {}", total_saved_utxos);
