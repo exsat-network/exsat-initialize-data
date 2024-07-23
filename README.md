@@ -18,6 +18,41 @@ Before running the programs, ensure you have Rust installed on your system. You 
 
 1. Setup btc fullnode by [script](./setup-bitcoin-fullnode.sh).
 
+    The following are the minimum configuration requirements for running a BTC full node: (The configuration requirements are not high, mainly disk)
+
+    CPU: 2 GHz | 2+ cores
+
+    RAM: 2 GB memory
+
+    SSD: 50G
+
+    Disk: 1TB or more
+
+    System: Ubuntu 22.04
+
+    Traffic bandwidth: 50M bandwidth and above, full node uses more than 200 GB per month
+
+    Task time: 5 minutes;
+
+
+```
+# replace setup-bitcoin-fullnode.sh to setup-bitcoin-testnet3.sh if you want to set up the testnet node.
+
+sudo -s
+chmod +x ./setup-bitcoin-fullnode.sh
+
+./setup-bitcoin-fullnode.sh
+
+# select 1 install_btc_full_node
+
+then 
+
+./setup-bitcoin-fullnode.sh
+
+# select 2 run_btc_full_node
+
+```
+
 
 2. Setup rust env by [script](./setup-rust.sh).
 
