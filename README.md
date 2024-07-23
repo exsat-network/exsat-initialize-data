@@ -7,14 +7,9 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 - **Fetch UTXOs From ElectrumX**: Fetch UTXOs from ElectrumX and save in Clickhouse.
 - **Block Header Fetcher**: Retrieves Bitcoin block headers and saves them to a CSV file.
 
-## Prerequisites
-r4.2xlarge aws
-CPU >= 4
-RAM >= 64 GiB
-SWAP >= 64 GiB
-Disk >= 1.5T
 
-Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
+
+Set up the btc fullnode
 
 1. Setup btc fullnode by [script](./setup-bitcoin-fullnode.sh).
 
@@ -53,6 +48,14 @@ then
 
 ```
 
+Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
+
+## Prerequisites
+r4.2xlarge aws
+CPU >= 4
+RAM >= 64 GiB
+SWAP >= 64 GiB
+Disk >= 1.5T
 
 2. Setup rust env by [script](./setup-rust.sh).
 
