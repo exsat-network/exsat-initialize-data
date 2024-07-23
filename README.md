@@ -48,16 +48,25 @@ then
 
 ```
 
+## Clickhouse and other Prerequisites
+r4.2xlarge aws
+
+CPU: 4 GHz | 4+ cores
+
+RAM: 128 GB memory
+
+SSD: 50G
+
+Disk: 1.5TB or more
+
+System: Ubuntu 22.04
+
+
+
 Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
 
-## Prerequisites
-r4.2xlarge aws
-CPU >= 4
-RAM >= 64 GiB
-SWAP >= 64 GiB
-Disk >= 1.5T
+1. Setup rust env by [script](./setup-rust.sh).
 
-2. Setup rust env by [script](./setup-rust.sh).
 
 ## #1 Block Headers Data < 840000
 
