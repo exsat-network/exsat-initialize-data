@@ -9,7 +9,7 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 
 
 
-Set up the btc fullnode
+## Set up the btc fullnode
 
 1. Setup btc fullnode by [script](./setup-bitcoin-fullnode.sh).
 
@@ -48,7 +48,7 @@ then
 
 ```
 
-## Clickhouse and other Prerequisites
+## Prerequisites
 r4.2xlarge aws
 
 CPU: 4 GHz | 4+ cores
@@ -62,7 +62,7 @@ Disk: 1.5TB or more
 System: Ubuntu 22.04
 
 
-
+## Set up the RUST Environment
 Before running the programs, ensure you have Rust installed on your system. You can install Rust using the following command:
 
 1. Setup rust env by [script](./setup-rust.sh).
