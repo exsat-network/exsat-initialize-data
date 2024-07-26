@@ -40,11 +40,9 @@ chmod +x ./setup-bitcoin-fullnode.sh
 
 # select 1 install_btc_full_node
 
-then 
+exit
 
-./setup-bitcoin-fullnode.sh
-
-# select 1 install_btc_full_node
+sudo -s
 
 then 
 
