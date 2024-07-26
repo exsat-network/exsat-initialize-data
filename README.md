@@ -15,9 +15,9 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 
     The following are the minimum configuration requirements for running a BTC full node: (The configuration requirements are not high, mainly disk)
 
-    CPU: 2 GHz | 2+ cores
+    CPU: 4+ cores
 
-    RAM: 2 GB memory
+    RAM: 8 GB memory
 
     SSD: 50G
 
@@ -219,7 +219,7 @@ clickhouse-client --query="INSERT INTO blockchain.addresses FORMAT CSVWithNames"
 ```
 
 ## #3 UTXOs Data < 840000 ([bitcoin-utxo-dump](https://github.com/exsat-network/bitcoin-utxo-dump))
-1. Run the [fullnode](https://github.com/exsat-network/bitcoin) and make it sync to 83999.
+1. Run the [fullnode](https://github.com/exsat-network/bitcoin) and make it sync to 839999.
 2. git clone https://github.com/exsat-network/bitcoin-utxo-dump
 3. Run the `bitcoin-utxo-dump`.
 
