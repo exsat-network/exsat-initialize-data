@@ -44,6 +44,12 @@ then
 
 ./setup-bitcoin-fullnode.sh
 
+# select 1 install_btc_full_node
+
+then 
+
+./setup-bitcoin-fullnode.sh
+
 # select 2 run_btc_full_node
 
 ```
