@@ -76,7 +76,7 @@ run_btc_full_node() {
 
 check_btc_full_node_block_height() {
     source ~/.bashrc
-    bitcoin-cli -rpcuser=your-rpc-user -rpcpassword=your-rpc-password getblockchaininfo
+    bitcoin-cli -rpcuser=your-rpc-user -rpcpassword=your-rpc-password -rpcport=18332 getblockchaininfo
 }
 
 check_btc_full_node_log() {
