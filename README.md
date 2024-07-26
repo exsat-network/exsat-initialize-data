@@ -213,7 +213,7 @@ clickhouse-client --query="INSERT INTO blockchain.addresses FORMAT CSVWithNames"
 ```
 
 ## #3 UTXOs Data < 840000 ([bitcoin-utxo-dump](https://github.com/exsat-network/bitcoin-utxo-dump))
-1. Run the [fullnode](https://github.com/exsat-network/bitcoin) and make it sync to 83999.
+1. Run the [fullnode](https://github.com/exsat-network/bitcoin) and make it sync to 839999.
 2. git clone https://github.com/exsat-network/bitcoin-utxo-dump
 3. Run the `bitcoin-utxo-dump`.
 
