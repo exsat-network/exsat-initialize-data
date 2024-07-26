@@ -50,7 +50,7 @@ install_btc_full_node() {
 server=1
 daemon=1
 txindex=1
-dbcache=2046
+dbcache=4092
 rpcallowip=0.0.0.0/0
 rpcuser=your-rpc-user
 rpcpassword=your-rpc-password
