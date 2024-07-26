@@ -15,9 +15,9 @@ This repository contains tools and scripts for initializing exSat with UTXO data
 
     The following are the minimum configuration requirements for running a BTC full node: (The configuration requirements are not high, mainly disk)
 
-    CPU: 2 GHz | 2+ cores
+    CPU: 4+ cores
 
-    RAM: 2 GB memory
+    RAM: 8 GB memory
 
     SSD: 50G
 
