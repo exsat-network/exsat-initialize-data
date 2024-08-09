@@ -1,0 +1,81 @@
+version: '3'
+services:
+  valid1:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid1/.env:/app/.env
+      - $HOME/.exsat/valid1/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator1
+
+  valid2:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid2/.env:/app/.env
+      - $HOME/.exsat/valid2/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator2
+
+  valid3:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid3/.env:/app/.env
+      - $HOME/.exsat/valid3/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator3
+
+  valid4:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid4/.env:/app/.env
+      - $HOME/.exsat/valid4/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator4
+
+  valid5:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid5/.env:/app/.env
+      - $HOME/.exsat/valid5/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator5
+
+  valid6:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid6/.env:/app/.env
+      - $HOME/.exsat/valid6/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator6
+
+  valid7:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid7/.env:/app/.env
+      - $HOME/.exsat/valid7/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator7
+
+  valid8:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid8/.env:/app/.env
+      - $HOME/.exsat/valid8/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator8
+
+  valid9:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid9/.env:/app/.env
+      - $HOME/.exsat/valid9/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator9
+
+  valid10:
+    image: exsatnetwork/validator:latest
+    volumes:
+      - $HOME/.exsat/valid10/.env:/app/.env
+      - $HOME/.exsat/valid10/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: validator10

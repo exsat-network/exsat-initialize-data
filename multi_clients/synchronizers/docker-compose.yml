@@ -1,0 +1,82 @@
+version: '3'
+
+services:
+  sync1:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync1/.env:/app/.env
+      - $HOME/.exsat/sync1/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync1
+
+  sync2:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync2/.env:/app/.env
+      - $HOME/.exsat/sync2/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync2
+
+  sync3:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync3/.env:/app/.env
+      - $HOME/.exsat/sync3/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync3
+
+  sync4:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync4/.env:/app/.env
+      - $HOME/.exsat/sync4/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync4
+
+  sync5:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync5/.env:/app/.env
+      - $HOME/.exsat/sync5/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync5
+
+  sync6:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync6/.env:/app/.env
+      - $HOME/.exsat/sync6/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync6
+
+  sync7:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync7/.env:/app/.env
+      - $HOME/.exsat/sync7/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync7
+
+  sync8:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync8/.env:/app/.env
+      - $HOME/.exsat/sync8/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync8
+
+  sync9:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync9/.env:/app/.env
+      - $HOME/.exsat/sync9/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync9
+
+  sync10:
+    image: exsatnetwork/synchronizer:latest
+    volumes:
+      - $HOME/.exsat/sync10/.env:/app/.env
+      - $HOME/.exsat/sync10/:/root/.exsat
+    command: --run --pwdfile /root/.exsat/password
+    container_name: sync10
