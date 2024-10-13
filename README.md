@@ -234,3 +234,14 @@ Script Types:
  non-standard 20665
  p2pk         45389
 ```
+
+## #4 Verify Process
+
+Folks can pull all the initial data from the Spring mainnet before exSat mainnet launch. 
+1. [Pull UTXO data on the Spring mainnet](./verify-scripts/fetch-mainnet-utxo.py)
+2. [Pull Block Header data on the Spring mainnet](./verify-scripts/fetch-mainnet-blocks.py)
+3. [Pull UTXO data from the Bitcoin node](./fetch_utxos_from_eletrumx/)
+4. [Pull Block Header data from the Bitcoin node](./fetch_bitcoin_blockhaeder/)
+5. Data comparison
+
+
