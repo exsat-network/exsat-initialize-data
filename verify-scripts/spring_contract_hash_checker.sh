@@ -16,6 +16,11 @@ if ! command_exists sha256sum; then
     exit 1
 fi
 
+if ! command_exists jq; then
+    echo "Error: jq is not installed"
+    exit 1
+fi
+
 # Function to get contract hashes
 get_contract_hashes() {
     local account=$1
@@ -28,8 +33,8 @@ get_contract_hashes() {
         return 1
     fi
 
-    # Extract ABI from JSON and calculate hash
-    abi_hash=$(echo $abi_json | jq -r '.abi' | jq -c . | sha256sum | awk '{print $1}')
+    # Extract ABI from JSON, remove all whitespace, and calculate hash
+    abi_hash=$(echo $abi_json | jq -r '.abi' | jq -c . | tr -d '[:space:]' | sha256sum | awk '{print $1}')
 
     # Get code hash
     code_hash=$(cleos -u $api_endpoint get code $account | grep "code hash" | awk '{print $3}')
