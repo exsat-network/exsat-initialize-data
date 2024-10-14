@@ -6,7 +6,7 @@ command_exists() {
 }
 
 # Check if required commands are available
-for cmd in cleos sha256sum jq xxd; do
+for cmd in cleos sha256sum jq; do
     if ! command_exists $cmd; then
         echo "Error: $cmd is not installed or not in PATH"
         exit 1
@@ -27,8 +27,8 @@ get_contract_hashes() {
         return 1
     fi
 
-    # Extract ABI from JSON, convert to hex, then calculate hash
-    abi_hash=$(echo $abi_json | jq -r '.abi' | jq -c . | tr -d '[:space:]' | sha256sum | awk '{print $1}')
+    # Extract ABI from JSON, remove all whitespace, and calculate hash
+    abi_hash=$(echo $abi_json | sha256sum | awk '{print $1}')
 
     # Get code hash
     code_hash=$(cleos -u $api_endpoint get code $account | grep "code hash" | awk '{print $3}')
