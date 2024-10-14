@@ -244,4 +244,56 @@ Folks can pull all the initial data from the Spring mainnet before exSat mainnet
 4. [Pull Block Header data from the Bitcoin node](./fetch_bitcoin_blockhaeder/)
 5. Data comparison
 
+You can set a [spring node](https://github.com/eosnetworkfoundation/evm-public-docs/tree/taokayan-exsat-doc/deployment_for_exSat#create-a-256gb-swap-and-240gb-tmpfs-system-to-hold-the-native-blockchain-state) to import the snapshot if the exSat mainnet is launched, because the UTXO data will change afterward. 
 
+1. Before you run the node, you should change the data-dir/config.ini and comment the peers' info:
+```yaml
+# 180GB chain-base size, using swap & tmpfs
+chain-state-db-size-mb = 184320
+access-control-allow-credentials = false
+
+allowed-connection = any
+p2p-listen-endpoint = 0.0.0.0:9876
+p2p-max-nodes-per-host = 10
+http-server-address = 0.0.0.0:8888
+state-history-endpoint = 0.0.0.0:8999
+
+trace-history = true
+chain-state-history = false
+http-max-response-time-ms = 1000
+
+# add/remove p2p peers if necessary
+#p2p-peer-address=xx.xx.xx.xx:9882
+#p2p-peer-address=xx.xx.xx.xx:9876
+#p2p-peer-address=xx.xx.xx.xx:9876
+
+max-transaction-time = 499
+read-only-read-window-time-us = 1000000
+transaction-retry-max-storage-size-gb = 1
+
+# Plugin(s) to enable, may be specified multiple times
+plugin = eosio::producer_plugin
+plugin = eosio::chain_api_plugin
+plugin = eosio::http_plugin
+plugin = eosio::producer_api_plugin
+plugin = eosio::state_history_plugin
+plugin = eosio::net_plugin
+plugin = eosio::net_api_plugin
+plugin = eosio::db_size_api_plugin
+```
+
+2. Modify these config in [fetch-mainnet-blocks](verify-scripts/fetch-mainnet-blocks.py) &  [ fetch-mainnet-utxo](verify-scripts/fetch-mainnet-utxo.py)
+from 
+```javascript
+API_URLS = [
+    "https://rpc-us.exsat.network/v1/chain/get_table_rows",
+    "https://as-node.defibox.xyz/v1/chain/get_table_rows"
+]
+```
+
+to 
+```javascript
+API_URLS = [
+    "http://127.0.0.1:8888/v1/chain/get_table_rows",
+]
+```
