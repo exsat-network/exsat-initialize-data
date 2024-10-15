@@ -52,9 +52,9 @@ then
 
 ```
 
-## Set up the btc prune node
+## Set up the mainnet btc prune node
 
-1. Setup btc fullnode by [script](./setup-bitcoin-prunenode.sh).
+1. Setup btc mainnet prunenode by [script](./setup-bitcoin-prunenode.sh).
 
     The following are the minimum configuration requirements for running a BTC prune node: (The configuration requirements are not high, mainly disk)
 
