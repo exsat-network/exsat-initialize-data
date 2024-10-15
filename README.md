@@ -52,6 +52,45 @@ then
 
 ```
 
+## Set up the mainnet btc prune node
+
+1. Setup btc mainnet prunenode by [script](./setup-bitcoin-prunenode.sh).
+
+    The following are the minimum configuration requirements for running a BTC prune node: (The configuration requirements are not high, mainly disk)
+
+    CPU: 4+ cores
+
+    RAM: 8 GB memory
+
+    SSD: 50G
+
+    System: Ubuntu 22.04
+
+    Traffic bandwidth: 50M bandwidth and above
+
+    Task time: 5 minutes;
+
+
+```
+
+sudo -s
+chmod +x ./setup-bitcoin-prunenode.sh
+
+./setup-bitcoin-prunenode.sh
+
+# select 1 install_btc_prune_node
+
+exit
+
+sudo -s
+
+then 
+
+./setup-bitcoin-prunenode.sh
+
+# select 2 run_btc_prune_node
+
+```
 ## Prerequisites
 r4.2xlarge aws
 
