@@ -336,3 +336,19 @@ API_URLS = [
     "http://127.0.0.1:8888/v1/chain/get_table_rows",
 ]
 ```
+
+## #5 Other
+### Articals
+
+1. [exSat UTXO Initialization Data Preparation](https://docs.google.com/document/d/1E-GY0A48a_gfp_MYsA9IPWqCs8r9fZ6obLgn7flGkfQ/edit?usp=sharing)
+
+2. [Discrepancy Between Theoretical Output of 84 Million Blocks and Tool-Exported Data](https://docs.google.com/document/d/143QsfuKPWyRDuqxC6BYx-5rL6yqIJQfbZrfRI-G7LmA/edit)
+
+###  Dataset Download Links
+1. [839,999 UTXO Dataset](https://s3.amazonaws.com/exsat.initialize.data/utxo_lt_840000_ordered.csv.7z) (identical results from electrumX and bitcoin-utxo-dump, only one provided)
+
+2. [Code bug coinbase burn dataset](https://s3.amazonaws.com/exsat.initialize.data/coinbase_burned.csv.zip)
+
+3. [OP_RETURN burn dataset](https://s3.amazonaws.com/exsat.initialize.data/opreturn_burned_lt_840000.csv.zip)
+   
+4. [SPRING SNAPSHOT](https://s3.amazonaws.com/exsat.initialize.data/spring-snapshot-utxo-mainnet.zip)
